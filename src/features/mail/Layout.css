@@ -1,0 +1,29 @@
+.mail-layout {
+  flex-direction: row;
+}
+
+.mail-layout-mailboxes,
+.mail-layout-list,
+.mail-layout-content {
+  display: flex;
+}
+
+.mail-layout-mailboxes {
+  width: 250px;
+}
+
+.mail-layout-list {
+  width: 350px;
+}
+
+.mail-layout-content {
+  flex: 1;
+}
+
+.mail-layout-center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  flex: 1;
+}

@@ -12,4 +12,5 @@
 
 .app-container > div {
   flex: 1;
+  display: flex;
 }
