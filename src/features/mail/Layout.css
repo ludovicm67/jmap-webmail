@@ -27,3 +27,38 @@
   text-align: center;
   flex: 1;
 }
+
+.mail-layout-title {
+  background: #fff;
+  padding: 16px;
+  font-weight: bold;
+  border-bottom: 1px solid #e6e9ed;
+}
+
+.mail-layout-list .app-item,
+.mail-layout-list .app-item-selected {
+  padding: 8px;
+  user-select: none;
+  border-bottom: 1px solid #e6e9ed;
+}
+
+@media screen and (max-width: 999px) {
+  .mail-layout-mailboxes,
+  .mail-layout-list,
+  .mail-layout-content {
+    flex: 1;
+    width: auto;
+    display: none;
+  }
+
+  .mail-layout-focused {
+    display: flex;
+  }
+}
+
+@media screen and (min-width: 1000px) {
+  .mail-layout-mailboxes,
+  .mail-layout-list {
+    border-right: 1px solid #e6e9ed;
+  }
+}

@@ -10,7 +10,7 @@ function Layout(): JSX.Element {
       <div className="mail-layout-mailboxes">
         <Mailboxes />
       </div>
-      <div className="mail-layout-list">
+      <div className="mail-layout-focused mail-layout-list">
         <MailList />
       </div>
       <div className="mail-layout-content">
