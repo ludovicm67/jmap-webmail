@@ -1,8 +1,8 @@
 import React from 'react';
 import './Layout.css';
 import MailContent from './content/Empty';
-import MailList from './list/Empty';
-import Mailboxes from './mailboxes/Empty';
+import MailList from './list/List';
+import Mailboxes from './mailboxes/List';
 
 function Layout(): JSX.Element {
   return (

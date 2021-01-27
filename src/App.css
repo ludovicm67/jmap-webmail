@@ -14,3 +14,22 @@
   flex: 1;
   display: flex;
 }
+
+.app-item,
+.app-item-selected {
+  padding: 8px;
+  user-select: none;
+}
+
+.app-item {
+  background: none;
+}
+
+.app-item:hover,
+.app-item-selected {
+  background: #e6e9ed;
+}
+
+.app-item-selected {
+  font-weight: bold;
+}
