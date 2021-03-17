@@ -1,41 +1,12 @@
 import React from 'react';
+import { useSelector } from 'react-redux';
 import { Link } from 'react-router-dom';
+import { selectMails } from '../mailSlice';
 import { FEATURE_URL, getRouteParams } from '../utils';
 import Empty from './Empty';
 
-type MailList = {
-  from: string;
-  subject: string;
-  content: string;
-  unread: boolean;
-  id: string;
-};
-
-const mailList: MailList[] = [
-  {
-    from: 'John Doe',
-    subject: 'Test2',
-    content: 'Is it also working?',
-    unread: true,
-    id: '00000000-0000-0000-0000-000000000001',
-  },
-  {
-    from: 'John Doe',
-    subject: 'Test',
-    content: 'Is it working?',
-    unread: false,
-    id: '00000000-0000-0000-0000-000000000002',
-  },
-  {
-    from: 'John Doe',
-    subject: 'First Test',
-    content: 'Is it working now?',
-    unread: false,
-    id: '00000000-0000-0000-0000-000000000003',
-  },
-];
-
 function List(): JSX.Element {
+  const mailList = useSelector(selectMails);
   const routeParams = getRouteParams();
   const mailboxId = routeParams.mailboxId || 'inbox';
   const mailId =
