@@ -1,4 +1,6 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
+import { getRouteParams } from '../utils';
 import Empty from './Empty';
 
 type Mailbox = {
@@ -34,16 +36,24 @@ const mailboxes: Mailbox[] = [
 ];
 
 function List(): JSX.Element {
-  const selectedMailbox = mailboxes.length > 0 ? mailboxes[0].id : '';
+  const routeParams = getRouteParams();
+  let mailboxId = routeParams.mailboxId || 'inbox';
+  if (mailboxId === 'inbox') {
+    mailboxId = mailboxes.length > 0 ? mailboxes[0].id : '';
+  }
 
   return mailboxes.length === 0 ? (
     <Empty />
   ) : (
-    <div className="is-flex-grow-1">
+    <div className="is-flex-grow-1 overflowable">
       {mailboxes.map((mailbox) => {
         const className =
-          mailbox.id === selectedMailbox ? 'app-item-selected' : 'app-item';
-        return <div className={className}>{mailbox.name}</div>;
+          mailbox.id === mailboxId ? 'app-item-selected' : 'app-item';
+        return (
+          <Link to={`/mail/${mailbox.id}`} key={mailbox.id}>
+            <div className={className}>{mailbox.name}</div>
+          </Link>
+        );
       })}
     </div>
   );

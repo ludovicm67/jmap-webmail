@@ -1,11 +1,13 @@
 .app {
-  min-height: 100vh;
+  height: 100vh;
   display: flex;
+  overflow: hidden;
   flex-direction: column;
 }
 
 .app-container {
   display: flex;
+  overflow: hidden;
   flex: auto;
   background: #f5f7fa;
 }
@@ -19,6 +21,11 @@
 .app-item-selected {
   padding: 8px;
   user-select: none;
+}
+
+a > .app-item,
+a > .app-item-selected {
+  color: #4a4a4a;
 }
 
 .app-item {

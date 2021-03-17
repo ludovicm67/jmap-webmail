@@ -1,4 +1,5 @@
 import React from 'react';
+import '@fortawesome/fontawesome-free/js/all';
 import MailLayout from './features/mail/Layout';
 import './App.css';
 
