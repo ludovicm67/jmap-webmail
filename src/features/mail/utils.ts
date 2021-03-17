@@ -41,3 +41,22 @@ export const getMailboxName = (mailbox: Mailbox): string => {
 
   return mailbox.name;
 };
+
+export const getMailboxIcon = (mailbox: Mailbox): string => {
+  switch (mailbox.role) {
+    case 'inbox':
+      return 'fas fa-inbox';
+    case 'drafts':
+      return 'fas fa-pencil-alt';
+    case 'sent':
+      return 'fas fa-paper-plane';
+    case 'junk':
+      return 'far fa-times-circle';
+    case 'trash':
+      return 'fas fa-trash-alt';
+    case 'archive':
+      return 'fas fa-archive';
+  }
+
+  return 'far fa-folder';
+};
