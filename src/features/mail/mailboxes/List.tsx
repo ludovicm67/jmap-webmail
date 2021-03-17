@@ -2,7 +2,7 @@ import React from 'react';
 import { useSelector } from 'react-redux';
 import { Link } from 'react-router-dom';
 import { selectMailboxes } from '../mailSlice';
-import { getRouteParams } from '../utils';
+import { getMailboxName, getRouteParams } from '../utils';
 import Empty from './Empty';
 
 function List(): JSX.Element {
@@ -23,7 +23,7 @@ function List(): JSX.Element {
           mailbox.id === mailboxId ? 'app-item-selected' : 'app-item';
         return (
           <Link to={`/mail/${mailbox.id}`} key={mailbox.id}>
-            <div className={className}>{mailbox.name}</div>
+            <div className={className}>{getMailboxName(mailbox)}</div>
           </Link>
         );
       })}

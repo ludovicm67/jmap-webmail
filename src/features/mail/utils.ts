@@ -1,4 +1,5 @@
 import { useRouteMatch } from 'react-router-dom';
+import { Mailbox } from './types';
 
 type RouteMatch = {
   mailboxId: string;
@@ -20,4 +21,23 @@ export const getRouteParams = (): RouteMatch => {
     mailboxId,
     mailId,
   };
+};
+
+export const getMailboxName = (mailbox: Mailbox): string => {
+  switch (mailbox.role) {
+    case 'inbox':
+      return 'Inbox';
+    case 'drafts':
+      return 'Drafts';
+    case 'sent':
+      return 'Sent Messages';
+    case 'junk':
+      return 'Junk';
+    case 'trash':
+      return 'Deleted Messages';
+    case 'archive':
+      return 'Archive';
+  }
+
+  return mailbox.name;
 };
