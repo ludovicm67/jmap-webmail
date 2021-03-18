@@ -24,10 +24,15 @@ function List(): JSX.Element {
         return (
           <Link to={`/mail/${mailbox.id}`} key={mailbox.id}>
             <div className={`icon-text ${className}`}>
-              <span className="icon">
+              <span className="icon mr-3">
                 <i className={getMailboxIcon(mailbox)}></i>
               </span>
               <span>{getMailboxName(mailbox)}</span>
+              {mailbox.unreadEmails > 0 && (
+                <span className="tag is-normal is-rounded is-primary ml-3">
+                  {mailbox.unreadEmails}
+                </span>
+              )}
             </div>
           </Link>
         );

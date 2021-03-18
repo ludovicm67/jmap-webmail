@@ -9,7 +9,7 @@ interface MailState {
 
 const initialState: MailState = {
   mailboxes: [
-    newMailbox('INBOX', 'inbox', '00000000-0000-0000-0000-000000000001'),
+    newMailbox('INBOX', 'inbox', '00000000-0000-0000-0000-000000000001', 1),
     newMailbox('Drafts', 'drafts', '00000000-0000-0000-0000-000000000002'),
     newMailbox('Sent Messages', 'sent', '00000000-0000-0000-0000-000000000003'),
     newMailbox('Junk', 'junk', '00000000-0000-0000-0000-000000000004'),

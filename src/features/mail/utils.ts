@@ -15,7 +15,7 @@ export const getRouteParams = (): RouteMatch => {
   );
 
   const mailboxId = matchMailbox?.params.mailboxId || '';
-  const mailId = matchMail?.params.mailId || '';
+  const mailId = (mailboxId && matchMail?.params.mailId) || '';
 
   return {
     mailboxId,

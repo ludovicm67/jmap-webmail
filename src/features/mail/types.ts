@@ -4,6 +4,7 @@ export type Mailbox = {
   name: string;
   role: string;
   id: string;
+  unreadEmails: number;
 };
 
 export type MailFrom = {
@@ -25,11 +26,13 @@ export const newMailbox = (
   name?: string,
   role?: string,
   id?: string,
+  unreadEmails?: number,
 ): Mailbox => {
   return {
     name: name || '(unknown)',
     role: role || '',
     id: id || randomString(36),
+    unreadEmails: unreadEmails || 0,
   };
 };
 
