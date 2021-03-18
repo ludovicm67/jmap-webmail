@@ -29,7 +29,7 @@ function List(): JSX.Element {
               </span>
               <span>{getMailboxName(mailbox)}</span>
               {mailbox.unreadEmails > 0 && (
-                <span className="tag is-normal is-rounded is-primary ml-3">
+                <span className="tag is-normal is-rounded is-primary has-text-weight-bold ml-3">
                   {mailbox.unreadEmails}
                 </span>
               )}
