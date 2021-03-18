@@ -1,5 +1,5 @@
 import { useRouteMatch } from 'react-router-dom';
-import { Mailbox } from './types';
+import { Mail, Mailbox } from './types';
 
 type RouteMatch = {
   mailboxId: string;
@@ -59,4 +59,24 @@ export const getMailboxIcon = (mailbox: Mailbox): string => {
   }
 
   return 'far fa-folder';
+};
+
+export const isUnreadMail = (mail: Mail): boolean => {
+  if (mail?.keywords?.$seen === false) {
+    return true;
+  }
+
+  return false;
+};
+
+export const getFromMail = (mail: Mail): string => {
+  if (mail?.from) {
+    if (mail.from?.name) {
+      return mail.from.name;
+    } else if (mail.from?.email) {
+      return mail.from.email;
+    }
+  }
+
+  return '(unknown)';
 };

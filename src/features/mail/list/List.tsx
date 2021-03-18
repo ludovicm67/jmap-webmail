@@ -2,19 +2,22 @@ import React from 'react';
 import { useSelector } from 'react-redux';
 import { Link } from 'react-router-dom';
 import { selectMailboxes, selectMails } from '../mailSlice';
-import { emptyMailbox } from '../types';
-import { FEATURE_URL, getMailboxName, getRouteParams } from '../utils';
+import { newMailbox } from '../types';
+import {
+  FEATURE_URL,
+  getFromMail,
+  getMailboxName,
+  getRouteParams,
+  isUnreadMail,
+} from '../utils';
 import Empty from './Empty';
 
 function List(): JSX.Element {
-  const mailboxes = useSelector(selectMailboxes);
-  const mailList = useSelector(selectMails);
   const routeParams = getRouteParams();
   let mailboxId = routeParams.mailboxId;
-  const mailId =
-    routeParams.mailId || (mailList.length > 0 ? mailList[0].id : '');
 
-  const backgroundClass = mailList.length > 0 ? 'has-background-white' : '';
+  const mailboxes = useSelector(selectMailboxes);
+  const mailListAll = useSelector(selectMails);
 
   if (!mailboxId) {
     const inboxMailbox = mailboxes.filter(
@@ -30,7 +33,21 @@ function List(): JSX.Element {
   );
 
   const currentMailbox =
-    currentMailboxes.length > 0 ? currentMailboxes[0] : emptyMailbox();
+    currentMailboxes.length > 0 ? currentMailboxes[0] : newMailbox();
+
+  const mailList = mailListAll.filter((mail) => {
+    if (
+      mail.mailboxIds &&
+      Object.prototype.hasOwnProperty.call(mail.mailboxIds, currentMailbox.id)
+    ) {
+      return mail.mailboxIds[currentMailbox.id];
+    }
+
+    return false;
+  });
+
+  const mailId = routeParams.mailId || '';
+  const backgroundClass = mailList.length > 0 ? 'has-background-white' : '';
 
   return (
     <div className="is-flex is-flex-grow-1 is-flex-direction-column is-clipped">
@@ -53,15 +70,15 @@ function List(): JSX.Element {
         ) : (
           mailList.map((mail) => {
             const className =
-              mail.unread || mail.id === mailId
+              isUnreadMail(mail) || mail.id === mailId
                 ? 'app-item-selected'
                 : 'app-item';
             return (
               <Link to={`${FEATURE_URL}${mailboxId}/${mail.id}`} key={mail.id}>
                 <div className={className}>
-                  <p>{mail.from}</p>
+                  <p>{getFromMail(mail)}</p>
                   <p>{mail.subject}</p>
-                  <p>{mail.content}</p>
+                  <p>{mail.preview}</p>
                 </div>
               </Link>
             );

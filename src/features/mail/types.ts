@@ -6,18 +6,53 @@ export type Mailbox = {
   id: string;
 };
 
-export type Mail = {
-  from: string;
-  subject: string;
-  content: string;
-  unread: boolean;
-  id: string;
+export type MailFrom = {
+  name?: string | null;
+  email?: string | null;
 };
 
-export const emptyMailbox = (): Mailbox => {
+export type Mail = {
+  from: MailFrom;
+  hasAttachment: boolean;
+  id: string;
+  mailboxIds: Record<string, boolean>;
+  preview: string;
+  subject: string;
+  keywords: Record<string, boolean>;
+};
+
+export const newMailbox = (
+  name?: string,
+  role?: string,
+  id?: string,
+): Mailbox => {
   return {
-    name: '(unknown)',
-    role: '',
-    id: randomString(32),
+    name: name || '(unknown)',
+    role: role || '',
+    id: id || randomString(36),
+  };
+};
+
+export const newMail = (
+  mailboxId: string,
+  subject?: string,
+  preview?: string,
+  seen = true,
+): Mail => {
+  return {
+    from: {
+      name: '' || randomString(8),
+      email: '' || `${randomString(4)}@${randomString(4)}.${randomString(2)}`,
+    },
+    hasAttachment: false,
+    id: randomString(36),
+    mailboxIds: {
+      [mailboxId]: true,
+    },
+    preview: preview || 'Lorem ipsum…',
+    subject: subject || '(no subject)',
+    keywords: {
+      $seen: seen,
+    },
   };
 };
