@@ -58,6 +58,10 @@ export const getMailboxIcon = (mailbox: Mailbox): string => {
       return 'fas fa-archive';
   }
 
+  if (mailbox.name === 'Notes') {
+    return 'far fa-sticky-note';
+  }
+
   return 'far fa-folder';
 };
 
