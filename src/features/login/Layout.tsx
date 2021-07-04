@@ -89,6 +89,7 @@ function Layout(): JSX.Element {
         Authorization: `Basic ${getBasicToken(identifier, password)}`,
       });
 
+      // eslint-disable-next-line no-console
       console.log(mailboxes);
     }
 
