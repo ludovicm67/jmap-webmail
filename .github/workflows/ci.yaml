@@ -3,7 +3,7 @@ name: Deploy webmail on GitHub Pages
 on:
   push:
     branches:
-      - master
+      - main
 
 jobs:
   docker:
