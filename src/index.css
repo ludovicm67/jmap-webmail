@@ -23,3 +23,7 @@ code {
 .has-no-background {
   background-color: rgba(0, 0, 0, 0);
 }
+
+.has-pointer {
+  cursor: pointer;
+}

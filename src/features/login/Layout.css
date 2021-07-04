@@ -1,0 +1,26 @@
+.login-layout {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+  overflow: auto;
+  flex-direction: column;
+}
+
+.login-layout > div {
+  max-width: 400px;
+  width: 100%;
+  padding: 16px;
+}
+
+.login-layout-bottom {
+  display: flex;
+  flex: 1;
+  justify-content: space-between;
+  align-items: center;
+  flex-direction: row-reverse;
+}
+
+.login-layout .checkbox > span {
+  margin-left: 5px;
+}
