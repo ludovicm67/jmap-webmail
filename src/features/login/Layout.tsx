@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useDispatch } from 'react-redux';
+import { batch, useDispatch } from 'react-redux';
 import ConditionalDisplay from '../../components/ConditionalDisplay';
 import {
   discoverJmapEndpoint,
@@ -7,6 +7,8 @@ import {
   getBasicToken,
   tryCredentials,
 } from '../../lib/jmap';
+import { setMailboxes } from '../mail/mailSlice';
+import { Mailbox } from '../mail/types';
 import './Layout.css';
 import { login } from './loginSlice';
 
@@ -18,6 +20,7 @@ enum LoginStep {
 
 function Layout(): JSX.Element {
   const dispatch = useDispatch();
+
   const [step, setStep] = useState<LoginStep>(LoginStep.Identifier);
   const [error, setError] = useState<string>('');
   const [more, setMore] = useState<boolean>(false);
@@ -90,14 +93,14 @@ function Layout(): JSX.Element {
         setLoading(false);
         return;
       }
-      const mailboxes = await fetchMailboxes(endpoint, identifier, {
+      const mailboxes: Mailbox[] = (await fetchMailboxes(endpoint, identifier, {
         Authorization: authHeader,
+      })) as unknown as Mailbox[];
+
+      batch(() => {
+        dispatch(login(authHeader));
+        dispatch(setMailboxes(mailboxes));
       });
-
-      dispatch(login(authHeader));
-
-      // eslint-disable-next-line no-console
-      console.log(mailboxes);
     }
 
     setLoading(false);
