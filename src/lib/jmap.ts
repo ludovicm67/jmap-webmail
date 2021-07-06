@@ -1,5 +1,5 @@
 import { Base64 } from 'js-base64';
-import { Mailbox } from '../features/mail/types';
+import { Mail, Mailbox } from '../features/mail/types';
 
 export const discoverJmapEndpoint = async (domain: string): Promise<string> => {
   const wellKnownURL = `https://${domain}/.well-known/jmap`;
@@ -75,6 +75,96 @@ export const fetchMailboxes = async (
   }
 
   const list = mbx[1].list as Mailbox[];
+
+  return {
+    success: true,
+    data: list,
+  };
+};
+
+export const fetchMails = async (
+  endpoint: string,
+  accountId: string,
+  headers?: Record<string, string>,
+): Promise<JMAPResponse<Mail[]>> => {
+  const response = await fetch(endpoint, {
+    headers: new Headers({ ...headers, 'Content-Type': 'application/json' }),
+    method: 'POST',
+    body: JSON.stringify({
+      using: ['urn:ietf:params:jmap:core', 'urn:ietf:params:jmap:mail'],
+      methodCalls: [
+        [
+          'Email/query',
+          {
+            accountId,
+            position: 0,
+            limit: 100,
+            calculateTotal: true,
+          },
+          '0',
+        ],
+        [
+          'Email/get',
+          {
+            accountId,
+            '#ids': {
+              resultOf: '0',
+              name: 'Email/query',
+              path: '/ids',
+            },
+            properties: [
+              'threadId',
+              'mailboxIds',
+              'keywords',
+              'hasAttachment',
+              'from',
+              'subject',
+              'receivedAt',
+              'size',
+              'preview',
+            ],
+          },
+          '1',
+        ],
+      ],
+    }),
+  });
+  const json = await response.json();
+  if (!json.methodResponses) {
+    return {
+      success: false,
+      message: 'not a valid JMAP response',
+    };
+  }
+
+  const methodResponses = json.methodResponses;
+  if (
+    !methodResponses ||
+    !Array.isArray(methodResponses) ||
+    methodResponses.length !== 2
+  ) {
+    return {
+      success: false,
+      message: 'no valid response',
+    };
+  }
+
+  const m = methodResponses[1];
+
+  if (m[0] !== 'Email/get') {
+    return {
+      success: false,
+      message: 'not the expected method',
+    };
+  }
+  if (!m[1] || !m[1].list || !Array.isArray(m[1].list)) {
+    return {
+      success: false,
+      message: 'could not fetch emails',
+    };
+  }
+
+  const list = m[1].list as Mail[];
 
   return {
     success: true,

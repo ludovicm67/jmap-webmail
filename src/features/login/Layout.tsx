@@ -4,10 +4,11 @@ import ConditionalDisplay from '../../components/ConditionalDisplay';
 import {
   discoverJmapEndpoint,
   fetchMailboxes,
+  fetchMails,
   getBasicToken,
   tryCredentials,
 } from '../../lib/jmap';
-import { setMailboxes } from '../mail/mailSlice';
+import { setList, setMailboxes } from '../mail/mailSlice';
 import './Layout.css';
 import { login } from './loginSlice';
 
@@ -106,9 +107,19 @@ function Layout(): JSX.Element {
         return;
       }
 
+      const mailsRequest = await fetchMails(endpoint, identifier, {
+        Authorization: authorizationHeader,
+      });
+      if (!mailsRequest.success) {
+        setError(mailsRequest.message);
+        setLoading(false);
+        return;
+      }
+
       batch(() => {
         dispatch(login({ identifier, authorizationHeader }));
         dispatch(setMailboxes(mailboxesRequest.data));
+        dispatch(setList(mailsRequest.data));
       });
 
       return;
