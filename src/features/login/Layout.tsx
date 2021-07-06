@@ -8,7 +8,6 @@ import {
   tryCredentials,
 } from '../../lib/jmap';
 import { setMailboxes } from '../mail/mailSlice';
-import { Mailbox } from '../mail/types';
 import './Layout.css';
 import { login } from './loginSlice';
 
