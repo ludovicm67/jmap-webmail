@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useDispatch } from 'react-redux';
 import ConditionalDisplay from '../../components/ConditionalDisplay';
 import {
   discoverJmapEndpoint,
@@ -7,6 +8,7 @@ import {
   tryCredentials,
 } from '../../lib/jmap';
 import './Layout.css';
+import { login } from './loginSlice';
 
 enum LoginStep {
   Identifier = 0,
@@ -15,6 +17,7 @@ enum LoginStep {
 }
 
 function Layout(): JSX.Element {
+  const dispatch = useDispatch();
   const [step, setStep] = useState<LoginStep>(LoginStep.Identifier);
   const [error, setError] = useState<string>('');
   const [more, setMore] = useState<boolean>(false);
@@ -77,17 +80,21 @@ function Layout(): JSX.Element {
     }
 
     if (step === LoginStep.Credentials) {
+      const authHeader = `Basic ${getBasicToken(identifier, password)}`;
       try {
         await tryCredentials(endpoint, {
-          Authorization: `Basic ${getBasicToken(identifier, password)}`,
+          Authorization: authHeader,
         });
       } catch (e) {
         setError('Bad credentials. Please retry.');
         setLoading(false);
+        return;
       }
       const mailboxes = await fetchMailboxes(endpoint, identifier, {
-        Authorization: `Basic ${getBasicToken(identifier, password)}`,
+        Authorization: authHeader,
       });
+
+      dispatch(login(authHeader));
 
       // eslint-disable-next-line no-console
       console.log(mailboxes);
