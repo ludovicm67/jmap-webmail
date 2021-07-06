@@ -83,23 +83,33 @@ function Layout(): JSX.Element {
     }
 
     if (step === LoginStep.Credentials) {
-      const authHeader = `Basic ${getBasicToken(identifier, password)}`;
+      const authorizationHeader = `Basic ${getBasicToken(
+        identifier,
+        password,
+      )}`;
       try {
         await tryCredentials(endpoint, {
-          Authorization: authHeader,
+          Authorization: authorizationHeader,
         });
       } catch (e) {
         setError('Bad credentials. Please retry.');
         setLoading(false);
         return;
       }
-      const mailboxes: Mailbox[] = (await fetchMailboxes(endpoint, identifier, {
-        Authorization: authHeader,
-      })) as unknown as Mailbox[];
+
+      const mailboxesRequest = await fetchMailboxes(endpoint, identifier, {
+        Authorization: authorizationHeader,
+      });
+
+      if (!mailboxesRequest.success) {
+        setError(mailboxesRequest.message);
+        setLoading(false);
+        return;
+      }
 
       batch(() => {
-        dispatch(login(authHeader));
-        dispatch(setMailboxes(mailboxes));
+        dispatch(login({ identifier, authorizationHeader }));
+        dispatch(setMailboxes(mailboxesRequest.data));
       });
 
       return;

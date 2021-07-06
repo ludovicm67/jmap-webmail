@@ -4,24 +4,33 @@ import { RootState } from '../../app/store';
 interface LoginState {
   authenticated: boolean;
   authorizationHeader: string;
+  identifier: string;
 }
+
+type LoginPayload = {
+  authorizationHeader: string;
+  identifier: string;
+};
 
 const initialState: LoginState = {
   authenticated: false,
   authorizationHeader: '',
+  identifier: '',
 };
 
 export const loginSlice = createSlice({
   name: 'login',
   initialState,
   reducers: {
-    login: (state, action: PayloadAction<string>) => {
-      state.authorizationHeader = action.payload;
+    login: (state, action: PayloadAction<LoginPayload>) => {
       state.authenticated = true;
+      state.authorizationHeader = action.payload.authorizationHeader;
+      state.identifier = action.payload.identifier;
     },
     logout: (state) => {
-      state.authorizationHeader = '';
       state.authenticated = false;
+      state.authorizationHeader = '';
+      state.identifier = '';
     },
   },
 });

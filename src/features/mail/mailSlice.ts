@@ -1,6 +1,6 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 import { RootState } from '../../app/store';
-import { Mailbox, Mail, newMailbox, newMail } from './types';
+import { Mailbox, Mail, newMailbox } from './types';
 
 interface MailState {
   mailboxes: Mailbox[];
@@ -11,49 +11,7 @@ const initialState: MailState = {
   mailboxes: [
     newMailbox('INBOX', 'inbox', '00000000-0000-0000-0000-000000000001', 1),
   ],
-  list: [
-    newMail('00000000-0000-0000-0000-000000000001'),
-    newMail(
-      '00000000-0000-0000-0000-000000000001',
-      'Hello world!',
-      'How are you?',
-      false,
-    ),
-    newMail('00000000-0000-0000-0000-000000000001'),
-    newMail('00000000-0000-0000-0000-000000000001'),
-    newMail('00000000-0000-0000-0000-000000000001'),
-    newMail('00000000-0000-0000-0000-000000000002'),
-    newMail('00000000-0000-0000-0000-000000000002'),
-    newMail('00000000-0000-0000-0000-000000000003'),
-    newMail('00000000-0000-0000-0000-000000000003'),
-    newMail('00000000-0000-0000-0000-000000000003'),
-    newMail('00000000-0000-0000-0000-000000000003'),
-    newMail('00000000-0000-0000-0000-000000000003'),
-    newMail('00000000-0000-0000-0000-000000000004'),
-    newMail('00000000-0000-0000-0000-000000000005'),
-    newMail('00000000-0000-0000-0000-000000000005'),
-    newMail('00000000-0000-0000-0000-000000000005'),
-    newMail('00000000-0000-0000-0000-000000000005'),
-    newMail('00000000-0000-0000-0000-000000000005'),
-    newMail('00000000-0000-0000-0000-000000000005'),
-    newMail('00000000-0000-0000-0000-000000000005'),
-    newMail('00000000-0000-0000-0000-000000000005'),
-    newMail('00000000-0000-0000-0000-000000000005'),
-    newMail('00000000-0000-0000-0000-000000000005'),
-    newMail('00000000-0000-0000-0000-000000000005'),
-    newMail('00000000-0000-0000-0000-000000000005'),
-    newMail('00000000-0000-0000-0000-000000000005'),
-    newMail('00000000-0000-0000-0000-000000000005'),
-    newMail('00000000-0000-0000-0000-000000000005'),
-    newMail('00000000-0000-0000-0000-000000000005'),
-    newMail('00000000-0000-0000-0000-000000000005'),
-    newMail('00000000-0000-0000-0000-000000000005'),
-    newMail('00000000-0000-0000-0000-000000000005'),
-    newMail('00000000-0000-0000-0000-000000000005'),
-    newMail('00000000-0000-0000-0000-000000000005'),
-    newMail('00000000-0000-0000-0000-000000000005'),
-    newMail('00000000-0000-0000-0000-000000000005'),
-  ],
+  list: [],
 };
 
 export const mailSlice = createSlice({
@@ -63,10 +21,13 @@ export const mailSlice = createSlice({
     setMailboxes: (state, action: PayloadAction<Mailbox[]>) => {
       state.mailboxes = action.payload;
     },
+    setList: (state, action: PayloadAction<Mail[]>) => {
+      state.list = action.payload;
+    },
   },
 });
 
-export const { setMailboxes } = mailSlice.actions;
+export const { setMailboxes, setList } = mailSlice.actions;
 
 export const selectMailboxes = (state: RootState): Mailbox[] =>
   state.mail.mailboxes;

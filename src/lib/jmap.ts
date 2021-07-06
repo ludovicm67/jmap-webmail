@@ -1,4 +1,5 @@
 import { Base64 } from 'js-base64';
+import { Mailbox } from '../features/mail/types';
 
 export const discoverJmapEndpoint = async (domain: string): Promise<string> => {
   const wellKnownURL = `https://${domain}/.well-known/jmap`;
@@ -6,11 +7,21 @@ export const discoverJmapEndpoint = async (domain: string): Promise<string> => {
   return response.url;
 };
 
+type JMAPResponse<T> =
+  | {
+      success: false;
+      message: string;
+    }
+  | {
+      success: true;
+      data: T;
+    };
+
 export const fetchMailboxes = async (
   endpoint: string,
   accountId: string,
   headers?: Record<string, string>,
-): Promise<Record<string, string | number | boolean>> => {
+): Promise<JMAPResponse<Mailbox[]>> => {
   const response = await fetch(endpoint, {
     headers: new Headers({ ...headers, 'Content-Type': 'application/json' }),
     method: 'POST',
@@ -63,8 +74,12 @@ export const fetchMailboxes = async (
     };
   }
 
-  const list = mbx[1].list;
-  return list;
+  const list = mbx[1].list as Mailbox[];
+
+  return {
+    success: true,
+    data: list,
+  };
 };
 
 export const tryCredentials = async (
