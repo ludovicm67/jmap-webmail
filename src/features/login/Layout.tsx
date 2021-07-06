@@ -101,6 +101,8 @@ function Layout(): JSX.Element {
         dispatch(login(authHeader));
         dispatch(setMailboxes(mailboxes));
       });
+
+      return;
     }
 
     setLoading(false);
