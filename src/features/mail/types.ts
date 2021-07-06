@@ -13,7 +13,7 @@ export type MailFrom = {
 };
 
 export type Mail = {
-  from: MailFrom;
+  from: MailFrom[];
   hasAttachment: boolean;
   id: string;
   mailboxIds: Record<string, boolean>;
@@ -43,10 +43,12 @@ export const newMail = (
   seen = true,
 ): Mail => {
   return {
-    from: {
-      name: '' || randomString(8),
-      email: '' || `${randomString(4)}@${randomString(4)}.${randomString(2)}`,
-    },
+    from: [
+      {
+        name: '' || randomString(8),
+        email: '' || `${randomString(4)}@${randomString(4)}.${randomString(2)}`,
+      },
+    ],
     hasAttachment: false,
     id: randomString(36),
     mailboxIds: {

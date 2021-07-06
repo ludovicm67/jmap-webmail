@@ -1,5 +1,5 @@
 import { useRouteMatch } from 'react-router-dom';
-import { Mail, Mailbox } from './types';
+import { Mail, Mailbox, MailFrom } from './types';
 
 type RouteMatch = {
   mailboxId: string;
@@ -73,14 +73,20 @@ export const isUnreadMail = (mail: Mail): boolean => {
   return false;
 };
 
-export const getFromMail = (mail: Mail): string => {
-  if (mail?.from) {
-    if (mail.from?.name) {
-      return mail.from.name;
-    } else if (mail.from?.email) {
-      return mail.from.email;
-    }
+const formatName = (from: MailFrom): string => {
+  if (from?.name) {
+    return from.name;
+  } else if (from?.email) {
+    return from.email;
   }
 
   return '(unknown)';
+};
+
+export const getFromMail = (mail: Mail): string => {
+  if (!mail.from || mail.from.length < 1) {
+    return '(unknown)';
+  }
+
+  return mail.from.map((f) => formatName(f)).join(', ');
 };
