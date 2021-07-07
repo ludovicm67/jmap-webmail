@@ -175,7 +175,7 @@ export const fetchMails = async (
 export const tryCredentials = async (
   endpoint: string,
   headers?: Record<string, string>,
-): Promise<undefined> => {
+): Promise<Record<string, string>> => {
   const response = await fetch(endpoint, {
     headers: new Headers({ ...headers, 'Content-Type': 'application/json' }),
     method: 'GET',

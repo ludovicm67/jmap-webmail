@@ -1,6 +1,7 @@
 import React from 'react';
 import './Layout.css';
-import MailContent from './content/Empty';
+import MailContent from './content/Mail';
+import MailEmpty from './content/Empty';
 import MailList from './list/List';
 import Mailboxes from './mailboxes/List';
 import { getRouteParams } from './utils';
@@ -33,7 +34,11 @@ function Layout(): JSX.Element {
         <MailList />
       </div>
       <div className={`mail-layout-content ${contentClass}`}>
-        <MailContent />
+        {routeParams.mailboxId && routeParams.mailId ? (
+          <MailContent mailId={routeParams.mailId} />
+        ) : (
+          <MailEmpty />
+        )}
       </div>
     </div>
   );

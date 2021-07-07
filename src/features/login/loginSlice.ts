@@ -5,17 +5,20 @@ interface LoginState {
   authenticated: boolean;
   authorizationHeader: string;
   identifier: string;
+  downloadUrl: string;
 }
 
 type LoginPayload = {
   authorizationHeader: string;
   identifier: string;
+  downloadUrl: string;
 };
 
 const initialState: LoginState = {
   authenticated: false,
   authorizationHeader: '',
   identifier: '',
+  downloadUrl: '',
 };
 
 export const loginSlice = createSlice({
@@ -26,11 +29,13 @@ export const loginSlice = createSlice({
       state.authenticated = true;
       state.authorizationHeader = action.payload.authorizationHeader;
       state.identifier = action.payload.identifier;
+      state.downloadUrl = action.payload.downloadUrl;
     },
     logout: (state) => {
       state.authenticated = false;
       state.authorizationHeader = '';
       state.identifier = '';
+      state.downloadUrl = '';
     },
   },
 });

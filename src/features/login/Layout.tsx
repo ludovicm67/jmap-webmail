@@ -83,18 +83,24 @@ function Layout(): JSX.Element {
     }
 
     if (step === LoginStep.Credentials) {
+      let userInfos;
       const authorizationHeader = `Basic ${getBasicToken(
         identifier,
         password,
       )}`;
       try {
-        await tryCredentials(endpoint, {
+        userInfos = await tryCredentials(endpoint, {
           Authorization: authorizationHeader,
         });
       } catch (e) {
         setError('Bad credentials. Please retry.');
         setLoading(false);
         return;
+      }
+
+      let downloadUrl = '';
+      if (userInfos.downloadUrl) {
+        downloadUrl = userInfos.downloadUrl;
       }
 
       const mailboxesRequest = await fetchMailboxes(endpoint, identifier, {
@@ -117,7 +123,7 @@ function Layout(): JSX.Element {
       }
 
       batch(() => {
-        dispatch(login({ identifier, authorizationHeader }));
+        dispatch(login({ identifier, authorizationHeader, downloadUrl }));
         dispatch(setMailboxes(mailboxesRequest.data));
         dispatch(setList(mailsRequest.data));
       });
