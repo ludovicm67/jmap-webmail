@@ -6,12 +6,14 @@ interface LoginState {
   authorizationHeader: string;
   identifier: string;
   downloadUrl: string;
+  endpoint: string;
 }
 
 type LoginPayload = {
   authorizationHeader: string;
   identifier: string;
   downloadUrl: string;
+  endpoint: string;
 };
 
 const initialState: LoginState = {
@@ -19,6 +21,7 @@ const initialState: LoginState = {
   authorizationHeader: '',
   identifier: '',
   downloadUrl: '',
+  endpoint: '',
 };
 
 export const loginSlice = createSlice({
@@ -30,12 +33,14 @@ export const loginSlice = createSlice({
       state.authorizationHeader = action.payload.authorizationHeader;
       state.identifier = action.payload.identifier;
       state.downloadUrl = action.payload.downloadUrl;
+      state.endpoint = action.payload.endpoint;
     },
     logout: (state) => {
       state.authenticated = false;
       state.authorizationHeader = '';
       state.identifier = '';
       state.downloadUrl = '';
+      state.endpoint = '';
     },
   },
 });
@@ -46,5 +51,12 @@ export const isAuthenticated = (state: RootState): boolean =>
   state.login.authenticated;
 export const selectAuthorizationHeader = (state: RootState): string =>
   state.login.authorizationHeader;
+
+export const getLoginPayload = (state: RootState): LoginPayload => ({
+  authorizationHeader: state.login.authorizationHeader,
+  identifier: state.login.identifier,
+  downloadUrl: state.login.downloadUrl,
+  endpoint: state.login.endpoint,
+});
 
 export default loginSlice.reducer;

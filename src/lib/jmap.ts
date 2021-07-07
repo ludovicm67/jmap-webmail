@@ -172,6 +172,89 @@ export const fetchMails = async (
   };
 };
 
+export const fetchMail = async (
+  endpoint: string,
+  accountId: string,
+  emailId: string,
+  headers?: Record<string, string>,
+): Promise<JMAPResponse<Mail>> => {
+  const response = await fetch(endpoint, {
+    headers: new Headers({ ...headers, 'Content-Type': 'application/json' }),
+    method: 'POST',
+    body: JSON.stringify({
+      using: ['urn:ietf:params:jmap:core', 'urn:ietf:params:jmap:mail'],
+      methodCalls: [
+        [
+          'Email/get',
+          {
+            accountId,
+            ids: [emailId],
+            properties: [
+              'threadId',
+              'mailboxIds',
+              'keywords',
+              'hasAttachment',
+              'from',
+              'subject',
+              'receivedAt',
+              'size',
+              'preview',
+              'htmlBody',
+            ],
+          },
+          '0',
+        ],
+      ],
+    }),
+  });
+  const json = await response.json();
+  if (!json.methodResponses) {
+    return {
+      success: false,
+      message: 'not a valid JMAP response',
+    };
+  }
+
+  const methodResponses = json.methodResponses;
+  if (
+    !methodResponses ||
+    !Array.isArray(methodResponses) ||
+    methodResponses.length !== 1
+  ) {
+    return {
+      success: false,
+      message: 'no valid response',
+    };
+  }
+
+  const m = methodResponses[0];
+
+  if (m[0] !== 'Email/get') {
+    return {
+      success: false,
+      message: 'not the expected method',
+    };
+  }
+  if (
+    !m[1] ||
+    !m[1].list ||
+    !Array.isArray(m[1].list) ||
+    m[1].list.length !== 1
+  ) {
+    return {
+      success: false,
+      message: 'could not fetch email',
+    };
+  }
+
+  const mail = m[1].list[0] as Mail;
+
+  return {
+    success: true,
+    data: mail,
+  };
+};
+
 export const tryCredentials = async (
   endpoint: string,
   headers?: Record<string, string>,

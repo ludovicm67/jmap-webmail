@@ -20,6 +20,7 @@ export type Mail = {
   preview: string;
   subject: string;
   keywords: Record<string, boolean>;
+  htmlBody?: Record<string, string>[];
 };
 
 export const newMailbox = (

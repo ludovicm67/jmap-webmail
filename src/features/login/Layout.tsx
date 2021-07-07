@@ -123,7 +123,9 @@ function Layout(): JSX.Element {
       }
 
       batch(() => {
-        dispatch(login({ identifier, authorizationHeader, downloadUrl }));
+        dispatch(
+          login({ identifier, authorizationHeader, downloadUrl, endpoint }),
+        );
         dispatch(setMailboxes(mailboxesRequest.data));
         dispatch(setList(mailsRequest.data));
       });
