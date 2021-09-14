@@ -1,4 +1,3 @@
-import React from 'react';
 import { Switch } from 'react-router';
 import { Redirect, Route } from 'react-router-dom';
 import '@fortawesome/fontawesome-free/js/all';

@@ -1,4 +1,3 @@
-import React from 'react';
 import './Layout.css';
 import MailContent from './content/Mail';
 import MailEmpty from './content/Empty';
