@@ -1,17 +1,45 @@
-/*
-object-assign
-(c) Sindre Sorhus
-@license MIT
-*/
-
 /*!
- * Font Awesome Free 5.15.4 by @fontawesome - https://fontawesome.com
+ * Font Awesome Free 6.2.1 by @fontawesome - https://fontawesome.com
  * License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License)
+ * Copyright 2022 Fonticons, Inc.
  */
 
-/*! @license DOMPurify 2.3.1 | (c) Cure53 and other contributors | Released under the Apache license 2.0 and Mozilla Public License 2.0 | github.com/cure53/DOMPurify/blob/2.3.1/LICENSE */
+/*! @license DOMPurify 2.4.3 | (c) Cure53 and other contributors | Released under the Apache license 2.0 and Mozilla Public License 2.0 | github.com/cure53/DOMPurify/blob/2.4.3/LICENSE */
 
-/** @license React v0.20.2
+/*! regenerator-runtime -- Copyright (c) 2014-present, Facebook, Inc. -- license (MIT): https://github.com/facebook/regenerator/blob/main/LICENSE */
+
+/**
+ * @license React
+ * react-dom.production.min.js
+ *
+ * Copyright (c) Facebook, Inc. and its affiliates.
+ *
+ * This source code is licensed under the MIT license found in the
+ * LICENSE file in the root directory of this source tree.
+ */
+
+/**
+ * @license React
+ * react-jsx-runtime.production.min.js
+ *
+ * Copyright (c) Facebook, Inc. and its affiliates.
+ *
+ * This source code is licensed under the MIT license found in the
+ * LICENSE file in the root directory of this source tree.
+ */
+
+/**
+ * @license React
+ * react.production.min.js
+ *
+ * Copyright (c) Facebook, Inc. and its affiliates.
+ *
+ * This source code is licensed under the MIT license found in the
+ * LICENSE file in the root directory of this source tree.
+ */
+
+/**
+ * @license React
  * scheduler.production.min.js
  *
  * Copyright (c) Facebook, Inc. and its affiliates.
@@ -30,25 +58,7 @@ object-assign
  */
 
 /** @license React v17.0.2
- * react-dom.production.min.js
- *
- * Copyright (c) Facebook, Inc. and its affiliates.
- *
- * This source code is licensed under the MIT license found in the
- * LICENSE file in the root directory of this source tree.
- */
-
-/** @license React v17.0.2
- * react-jsx-runtime.production.min.js
- *
- * Copyright (c) Facebook, Inc. and its affiliates.
- *
- * This source code is licensed under the MIT license found in the
- * LICENSE file in the root directory of this source tree.
- */
-
-/** @license React v17.0.2
- * react.production.min.js
+ * react-is.production.min.js
  *
  * Copyright (c) Facebook, Inc. and its affiliates.
  *
