@@ -1,5 +1,5 @@
 import React from 'react';
-import ReactDOM from 'react-dom';
+import { createRoot } from 'react-dom/client';
 import 'bulma/css/bulma.min.css';
 import './index.css';
 import App from './App';
@@ -11,7 +11,11 @@ import { QueryClient, QueryClientProvider } from 'react-query';
 
 const queryClient = new QueryClient();
 
-ReactDOM.render(
+const container = document.getElementById('root');
+// eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+const root = createRoot(container!); // createRoot(container!) if you use TypeScript
+
+root.render(
   <React.StrictMode>
     <QueryClientProvider client={queryClient}>
       <Provider store={store}>
@@ -21,7 +25,6 @@ ReactDOM.render(
       </Provider>
     </QueryClientProvider>
   </React.StrictMode>,
-  document.getElementById('root'),
 );
 
 // If you want your app to work offline and load faster, you can change
