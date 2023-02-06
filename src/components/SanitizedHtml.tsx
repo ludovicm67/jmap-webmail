@@ -9,11 +9,11 @@ export interface SanitizedHtmlProps
 const SanitizedHtml: React.FC<SanitizedHtmlProps> = ({ html, ...props }) => {
   const container = useRef<HTMLDivElement>(null);
   const [shadowRoot, setShadowRoot] = useState<ShadowRoot | null>(null);
+
   useEffect(() => {
-    if (!container.current || shadowRoot) {
+    if (!container.current || shadowRoot || container.current.shadowRoot) {
       return;
     }
-
     setShadowRoot(container.current.attachShadow({ mode: 'open' }));
   }, [container, shadowRoot]);
 
@@ -21,6 +21,7 @@ const SanitizedHtml: React.FC<SanitizedHtmlProps> = ({ html, ...props }) => {
     if (!shadowRoot) {
       return;
     }
+
     const dom = DOMPurify.sanitize(html, { RETURN_DOM: true });
     dom
       .querySelectorAll('a')
