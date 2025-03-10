@@ -22,13 +22,11 @@ const SanitizedHtml: React.FC<SanitizedHtmlProps> = ({ html, ...props }) => {
       return;
     }
 
-    const dom = DOMPurify.sanitize(html, { RETURN_DOM: true });
-    dom
-      .querySelectorAll('a')
-      .forEach((link: { target: string; rel: string }) => {
-        link.target = '_blank';
-        link.rel = 'noopener noreferrer';
-      });
+    const dom = DOMPurify.sanitize(html, { RETURN_DOM: true }) as Element;
+    dom.querySelectorAll('a').forEach((link: HTMLAnchorElement) => {
+      link.target = '_blank';
+      link.rel = 'noopener noreferrer';
+    });
     shadowRoot.innerHTML = '';
     shadowRoot.appendChild(dom);
   }, [shadowRoot, html]);
