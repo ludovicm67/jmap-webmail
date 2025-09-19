@@ -1,5 +1,5 @@
-import { Switch } from 'react-router';
-import { Redirect, Route } from 'react-router-dom';
+import { Navigate, Routes } from 'react-router';
+import { Route } from 'react-router-dom';
 import '@fortawesome/fontawesome-free/js/all';
 import MailLayout from './features/mail/Layout';
 import LoginLayout from './features/login/Layout';
@@ -20,39 +20,34 @@ function App(): JSX.Element {
         </div>
       </nav>
       <div className="app-container">
-        <Switch>
-          <Route
-            path={MailUrl}
-            render={() => {
-              return authenticated ? (
-                <MailLayout />
-              ) : (
-                <Redirect to={LoginUrl} />
-              );
-            }}
-          />
-          <Route
-            path={LoginUrl}
-            render={() => {
-              return !authenticated ? (
-                <LoginLayout />
-              ) : (
-                <Redirect to={MailUrl} />
-              );
-            }}
-          />
-          <Route
-            path="/"
-            exact={false}
-            render={() => {
-              return authenticated ? (
-                <Redirect to={MailUrl} />
-              ) : (
-                <Redirect to={LoginUrl} />
-              );
-            }}
-          />
-        </Switch>
+        {authenticated ? (
+          <Routes>
+            {/* Mail subroutes */}
+            <Route
+              path={`${MailUrl}:mailboxId/:mailId`}
+              element={<MailLayout />}
+            />
+            <Route path={`${MailUrl}:mailboxId`} element={<MailLayout />} />
+            <Route path={MailUrl} element={<MailLayout />} />
+
+            {/* Any attempt to hit login gets redirected back */}
+            <Route
+              path={LoginUrl}
+              element={<Navigate to={MailUrl} replace />}
+            />
+
+            {/* Catch-all */}
+            <Route path="/*" element={<Navigate to={MailUrl} replace />} />
+          </Routes>
+        ) : (
+          <Routes>
+            {/* Only login route allowed */}
+            <Route path={LoginUrl} element={<LoginLayout />} />
+
+            {/* Anything else goes to login */}
+            <Route path="/*" element={<Navigate to={LoginUrl} replace />} />
+          </Routes>
+        )}
       </div>
     </div>
   );

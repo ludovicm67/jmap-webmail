@@ -3,10 +3,10 @@ import MailContent from './content/Mail';
 import MailEmpty from './content/Empty';
 import MailList from './list/List';
 import Mailboxes from './mailboxes/List';
-import { getRouteParams } from './utils';
+import { useParams } from 'react-router-dom';
 
 function Layout(): JSX.Element {
-  const routeParams = getRouteParams();
+  const routeParams = useParams<{ mailboxId?: string; mailId?: string }>();
 
   let mailboxesClass = '';
   let listClass = 'hide-mobile';
