@@ -1,13 +1,13 @@
 import { useSelector } from 'react-redux';
-import { Link } from 'react-router-dom';
+import { Link, useParams } from 'react-router-dom';
 import { selectMailboxes } from '../mailSlice';
-import { getMailboxIcon, getMailboxName, getRouteParams } from '../utils';
+import { getMailboxIcon, getMailboxName } from '../utils';
 import Empty from './Empty';
 
 function List(): JSX.Element {
   const mailboxes = useSelector(selectMailboxes);
 
-  const routeParams = getRouteParams();
+  const routeParams = useParams<{ mailboxId?: string; mailId?: string }>();
   let mailboxId = routeParams.mailboxId || 'inbox';
   if (mailboxId === 'inbox') {
     mailboxId = mailboxes.length > 0 ? mailboxes[0].id : '';

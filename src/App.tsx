@@ -21,37 +21,25 @@ function App(): JSX.Element {
       </nav>
       <div className="app-container">
         <Switch>
-          <Route
-            path={MailUrl}
-            render={() => {
-              return authenticated ? (
-                <MailLayout />
-              ) : (
-                <Redirect to={LoginUrl} />
-              );
-            }}
-          />
-          <Route
-            path={LoginUrl}
-            render={() => {
-              return !authenticated ? (
-                <LoginLayout />
-              ) : (
-                <Redirect to={MailUrl} />
-              );
-            }}
-          />
-          <Route
-            path="/"
-            exact={false}
-            render={() => {
-              return authenticated ? (
-                <Redirect to={MailUrl} />
-              ) : (
-                <Redirect to={LoginUrl} />
-              );
-            }}
-          />
+          <Route path={`${MailUrl}:mailboxId/:mailId`}>
+            {authenticated ? <MailLayout /> : <Redirect to={LoginUrl} />}
+          </Route>
+          <Route path={`${MailUrl}:mailboxId`}>
+            {authenticated ? <MailLayout /> : <Redirect to={LoginUrl} />}
+          </Route>
+          <Route path={MailUrl}>
+            {authenticated ? <MailLayout /> : <Redirect to={LoginUrl} />}
+          </Route>
+          <Route path={LoginUrl}>
+            {!authenticated ? <LoginLayout /> : <Redirect to={MailUrl} />}
+          </Route>
+          <Route path="/" exact={false}>
+            {authenticated ? (
+              <Redirect to={MailUrl} />
+            ) : (
+              <Redirect to={LoginUrl} />
+            )}
+          </Route>
         </Switch>
       </div>
     </div>
