@@ -1,3 +1,4 @@
+import React from 'react';
 import { Navigate, Routes } from 'react-router';
 import { Route } from 'react-router-dom';
 import '@fortawesome/fontawesome-free/js/all';
@@ -9,7 +10,7 @@ import './App.css';
 import { useSelector } from 'react-redux';
 import { isAuthenticated } from './features/login/loginSlice';
 
-function App(): JSX.Element {
+function App(): React.JSX.Element {
   const authenticated = useSelector(isAuthenticated);
 
   return (

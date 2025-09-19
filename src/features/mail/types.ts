@@ -46,8 +46,8 @@ export const newMail = (
   return {
     from: [
       {
-        name: '' || randomString(8),
-        email: '' || `${randomString(4)}@${randomString(4)}.${randomString(2)}`,
+        name: randomString(8),
+        email: `${randomString(4)}@${randomString(4)}.${randomString(2)}`,
       },
     ],
     hasAttachment: false,

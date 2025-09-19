@@ -1,4 +1,5 @@
 import './Layout.css';
+import { JSX } from 'react';
 import MailContent from './content/Mail';
 import MailEmpty from './content/Empty';
 import MailList from './list/List';
