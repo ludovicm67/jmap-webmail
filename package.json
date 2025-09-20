@@ -21,14 +21,13 @@
     "react-query": "^3.39.3",
     "react-redux": "^7.2.5",
     "react-router": "^7.9.1",
-    "react-scripts": "5.0.1",
     "typescript": "^5.9.2"
   },
   "scripts": {
-    "start": "react-scripts start",
-    "build": "react-scripts build",
-    "test": "react-scripts test",
-    "eject": "react-scripts eject"
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "lint": "eslint ."
   },
   "eslintConfig": {
     "extends": "react-app"
@@ -47,8 +46,10 @@
   },
   "devDependencies": {
     "@babel/plugin-proposal-private-property-in-object": "^7.21.11",
+    "@vitejs/plugin-react": "^5.0.3",
     "eslint-config-prettier": "^9.1.2",
     "eslint-plugin-prettier": "^5.5.4",
-    "prettier": "^3.6.2"
+    "prettier": "^3.6.2",
+    "vite": "^7.1.6"
   }
 }
