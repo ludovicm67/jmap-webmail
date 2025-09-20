@@ -1,6 +1,6 @@
 import { JSX } from 'react';
 import { useSelector } from 'react-redux';
-import { useQuery } from 'react-query';
+import { useQuery } from '@tanstack/react-query';
 import SanitizedHtml from '../../../components/SanitizedHtml';
 import { fetchMail } from '../../../lib/jmap';
 import { getLoginPayload } from '../../login/loginSlice';
@@ -93,15 +93,17 @@ function Mail(props: MailProps): JSX.Element {
   const { authorizationHeader, endpoint, identifier, downloadUrl } =
     loginDetails;
 
-  const { isLoading, error, data } = useQuery(`mail/${mailId}`, () =>
-    fetchMailContent({
-      endpoint,
-      identifier,
-      mailId,
-      authorizationHeader,
-      downloadUrl,
-    }),
-  );
+  const { isLoading, error, data } = useQuery({
+    queryKey: [`mail/${mailId}`],
+    queryFn: () =>
+      fetchMailContent({
+        endpoint,
+        identifier,
+        mailId,
+        authorizationHeader,
+        downloadUrl,
+      }),
+  });
 
   if (isLoading) {
     return <p>Loading…</p>;
