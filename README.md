@@ -6,7 +6,7 @@ This is a webmail client for JMAP protocol.
 
 ```sh
 npm install
-npm run start
+npm run dev
 ```
 
 And open your web browser at: http://localhost:3000/
