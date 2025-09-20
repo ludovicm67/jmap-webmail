@@ -1,6 +1,6 @@
 import { JSX } from 'react';
 import { useSelector } from 'react-redux';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useParams } from 'react-router';
 import { selectMailboxes, selectMails } from '../mailSlice';
 import { newMailbox } from '../types';
 import {

@@ -4,7 +4,7 @@ import MailContent from './content/Mail';
 import MailEmpty from './content/Empty';
 import MailList from './list/List';
 import Mailboxes from './mailboxes/List';
-import { useParams } from 'react-router-dom';
+import { useParams } from 'react-router';
 
 function Layout(): JSX.Element {
   const routeParams = useParams<{ mailboxId?: string; mailId?: string }>();

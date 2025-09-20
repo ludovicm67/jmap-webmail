@@ -1,6 +1,6 @@
 import React from 'react';
 import { Navigate, Routes } from 'react-router';
-import { Route } from 'react-router-dom';
+import { Route } from 'react-router';
 import '@fortawesome/fontawesome-free/js/all';
 import MailLayout from './features/mail/Layout';
 import LoginLayout from './features/login/Layout';

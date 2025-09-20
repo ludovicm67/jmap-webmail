@@ -1,6 +1,6 @@
 import { JSX } from 'react';
 import { useSelector } from 'react-redux';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useParams } from 'react-router';
 import { selectMailboxes } from '../mailSlice';
 import { getMailboxIcon, getMailboxName } from '../utils';
 import Empty from './Empty';

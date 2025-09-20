@@ -13,14 +13,14 @@
     "@types/react": "^18.0.27",
     "@types/react-dom": "^18.0.10",
     "@types/react-redux": "^7.1.18",
-    "bulma": "^0.9.4",
-    "dompurify": "^3.2.4",
-    "js-base64": "^3.7.4",
+    "bulma": "^1.0.4",
+    "dompurify": "^3.2.7",
+    "js-base64": "^3.7.8",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-query": "^3.39.3",
     "react-redux": "^7.2.5",
-    "react-router-dom": "^7.9.1",
+    "react-router": "^7.9.1",
     "react-scripts": "5.0.1",
     "typescript": "^5.9.2"
   },
@@ -47,7 +47,6 @@
   },
   "devDependencies": {
     "@babel/plugin-proposal-private-property-in-object": "^7.21.11",
-    "@types/react-router-dom": "^5.3.3",
     "eslint-config-prettier": "^9.1.2",
     "eslint-plugin-prettier": "^5.5.4",
     "prettier": "^3.6.2"
