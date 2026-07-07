@@ -1,6 +1,6 @@
-import { JSX, useState } from 'react';
+import { JSX, useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { ChevronLeft, RefreshCw } from 'lucide-react';
+import { Check, ChevronLeft, RefreshCw } from 'lucide-react';
 import { Link, useParams } from 'react-router';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -15,6 +15,8 @@ import {
   getMailboxName,
   isUnreadMail,
 } from '../utils';
+import EmailAvatar from './Avatar';
+import BulkActions from './BulkActions';
 import Empty from './Empty';
 
 function List(): JSX.Element {
@@ -23,6 +25,7 @@ function List(): JSX.Element {
   const { apiUrl, accountId, authorizationHeader } =
     useSelector(getLoginPayload);
   const [refreshing, setRefreshing] = useState(false);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
   let mailboxId = routeParams.mailboxId;
 
   const mailboxes = useSelector(selectMailboxes);
@@ -36,6 +39,11 @@ function List(): JSX.Element {
       mailboxId = inboxMailbox[0].id;
     }
   }
+
+  // Reset the selection whenever the visible mailbox changes.
+  useEffect(() => {
+    setSelected(new Set());
+  }, [mailboxId]);
 
   const currentMailboxes = mailboxes.filter(
     (mailbox) => mailbox.id === mailboxId,
@@ -57,6 +65,18 @@ function List(): JSX.Element {
 
   const mailId = routeParams.mailId || '';
 
+  const toggleSelected = (id: string) => {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
+  };
+
   const refresh = async () => {
     if (refreshing || !apiUrl || !accountId) {
       return;
@@ -73,41 +93,71 @@ function List(): JSX.Element {
 
   return (
     <div className="flex flex-1 flex-col overflow-hidden">
-      <div className="flex items-center gap-2 border-b px-3 py-2">
-        <Button asChild variant="ghost" size="icon" className="md:hidden">
-          <Link to={FEATURE_URL} aria-label="Back to mailboxes">
-            <ChevronLeft className="h-4 w-4" />
-          </Link>
-        </Button>
-        <span className="flex-1 truncate font-semibold">
-          {getMailboxName(currentMailbox)}
-        </span>
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={refresh}
-          disabled={refreshing}
-          aria-label="Refresh"
-        >
-          <RefreshCw className={cn('h-4 w-4', refreshing && 'animate-spin')} />
-        </Button>
-      </div>
+      {selected.size > 0 ? (
+        <BulkActions
+          ids={Array.from(selected)}
+          currentMailbox={currentMailbox}
+          onDone={() => setSelected(new Set())}
+        />
+      ) : (
+        <div className="flex items-center gap-2 border-b px-3 py-2">
+          <Button asChild variant="ghost" size="icon" className="md:hidden">
+            <Link to={FEATURE_URL} aria-label="Back to mailboxes">
+              <ChevronLeft className="h-4 w-4" />
+            </Link>
+          </Button>
+          <span className="flex-1 truncate font-semibold">
+            {getMailboxName(currentMailbox)}
+          </span>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={refresh}
+            disabled={refreshing}
+            aria-label="Refresh"
+          >
+            <RefreshCw
+              className={cn('h-4 w-4', refreshing && 'animate-spin')}
+            />
+          </Button>
+        </div>
+      )}
       <div className="flex flex-1 flex-col overflow-auto">
         {mailList.length === 0 ? (
           <Empty />
         ) : (
           mailList.map((mail) => {
             const unread = isUnreadMail(mail);
-            const selected = mail.id === mailId;
+            const open = mail.id === mailId;
+            const isSelected = selected.has(mail.id);
             return (
-              <Link to={`${FEATURE_URL}${mailboxId}/${mail.id}`} key={mail.id}>
-                <div
-                  className={cn(
-                    'flex flex-col gap-0.5 border-b border-l-2 border-l-transparent px-3 py-2 select-none',
-                    selected
-                      ? 'bg-primary/10 border-l-primary'
-                      : 'hover:bg-accent/50',
+              <div
+                key={mail.id}
+                className={cn(
+                  'flex gap-3 border-b border-l-2 border-l-transparent px-3 py-2',
+                  isSelected || open
+                    ? 'bg-primary/10 border-l-primary'
+                    : 'hover:bg-accent/50',
+                )}
+              >
+                <button
+                  type="button"
+                  onClick={() => toggleSelected(mail.id)}
+                  className="mt-0.5 shrink-0"
+                  aria-label={isSelected ? 'Deselect email' : 'Select email'}
+                  aria-pressed={isSelected}
+                >
+                  {isSelected ? (
+                    <div className="bg-primary text-primary-foreground flex h-9 w-9 items-center justify-center rounded-full">
+                      <Check className="h-4 w-4" />
+                    </div>
+                  ) : (
+                    <EmailAvatar person={mail.from?.[0]} />
                   )}
+                </button>
+                <Link
+                  to={`${FEATURE_URL}${mailboxId}/${mail.id}`}
+                  className="flex min-w-0 flex-1 flex-col gap-0.5 select-none"
                 >
                   <div className="flex items-center gap-2">
                     {unread && (
@@ -133,8 +183,8 @@ function List(): JSX.Element {
                   <span className="text-muted-foreground truncate text-xs">
                     {mail.preview}
                   </span>
-                </div>
-              </Link>
+                </Link>
+              </div>
             );
           })
         )}

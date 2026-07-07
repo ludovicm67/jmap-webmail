@@ -12,6 +12,12 @@ export type MailFrom = {
   email?: string | null;
 };
 
+export type Identity = {
+  id: string;
+  name?: string | null;
+  email: string;
+};
+
 export type EmailBodyPart = {
   partId?: string | null;
   blobId?: string | null;
@@ -31,6 +37,8 @@ export type Mail = {
   from: MailFrom[];
   to?: MailFrom[];
   cc?: MailFrom[];
+  replyTo?: MailFrom[] | null;
+  sender?: MailFrom[] | null;
   hasAttachment: boolean;
   id: string;
   mailboxIds: Record<string, boolean>;
@@ -38,6 +46,9 @@ export type Mail = {
   subject: string;
   receivedAt?: string;
   size?: number;
+  messageId?: string[] | null;
+  inReplyTo?: string[] | null;
+  references?: string[] | null;
   keywords: Record<string, boolean>;
   textBody?: EmailBodyPart[];
   htmlBody?: EmailBodyPart[];

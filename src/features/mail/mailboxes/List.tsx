@@ -1,8 +1,11 @@
 import { JSX } from 'react';
 import { useSelector } from 'react-redux';
 import { Link, useParams } from 'react-router';
+import { PenSquare } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import ComposeDialog from '../compose/ComposeDialog';
 import { selectMailboxes } from '../mailSlice';
 import { getMailboxIcon, getMailboxIconColor, getMailboxName } from '../utils';
 import Empty from './Empty';
@@ -22,6 +25,16 @@ function List(): JSX.Element {
 
   return (
     <div className="flex flex-1 flex-col overflow-auto p-2">
+      <div className="p-1">
+        <ComposeDialog
+          trigger={
+            <Button className="w-full">
+              <PenSquare className="h-4 w-4" />
+              Compose
+            </Button>
+          }
+        />
+      </div>
       <div className="text-muted-foreground px-2 py-1 text-xs font-medium tracking-wide uppercase">
         Mailboxes
       </div>

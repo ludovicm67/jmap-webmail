@@ -2,7 +2,7 @@ import { JSX, useEffect, useRef } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router';
-import { ChevronLeft, MailOpen, Mail as MailClosed } from 'lucide-react';
+import { ChevronLeft, MailOpen, Mail as MailClosed, Reply } from 'lucide-react';
 import SanitizedHtml from '../../../components/SanitizedHtml';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -10,6 +10,9 @@ import { fetchMail, setEmailKeyword } from '../../../lib/jmap';
 import { getLoginPayload } from '../../login/loginSlice';
 import { selectMails, setMailSeen } from '../mailSlice';
 import { Mail as MailType } from '../types';
+import ComposeDialog from '../compose/ComposeDialog';
+import QuickReply from '../compose/QuickReply';
+import { buildReply } from '../compose/utils';
 import {
   FEATURE_URL,
   formatReceivedAt,
@@ -110,6 +113,9 @@ function Mail(props: MailProps): JSX.Element {
 
   const body = getDisplayBody(data);
   const isHtml = body?.type === 'text/html';
+  // Only quote plain-text bodies; HTML would need stripping to quote cleanly.
+  const quoteText = body && !isHtml ? body.value : undefined;
+  const replyInitial = buildReply(data, quoteText);
 
   return (
     <div className="flex flex-1 flex-col overflow-hidden">
@@ -142,24 +148,31 @@ function Mail(props: MailProps): JSX.Element {
             {data.receivedAt && <div>{formatReceivedAt(data.receivedAt)}</div>}
           </div>
         </div>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => setSeen(!seen)}
-          className="mt-0.5 shrink-0"
-        >
-          {seen ? (
-            <>
-              <MailClosed className="h-4 w-4" />
-              <span className="hidden sm:inline">Mark as unread</span>
-            </>
-          ) : (
-            <>
-              <MailOpen className="h-4 w-4" />
-              <span className="hidden sm:inline">Mark as read</span>
-            </>
-          )}
-        </Button>
+        <div className="mt-0.5 flex shrink-0 items-center gap-2">
+          <ComposeDialog
+            title="Reply"
+            initial={replyInitial}
+            trigger={
+              <Button variant="outline" size="sm">
+                <Reply className="h-4 w-4" />
+                <span className="hidden sm:inline">Reply</span>
+              </Button>
+            }
+          />
+          <Button variant="outline" size="sm" onClick={() => setSeen(!seen)}>
+            {seen ? (
+              <>
+                <MailClosed className="h-4 w-4" />
+                <span className="hidden sm:inline">Mark as unread</span>
+              </>
+            ) : (
+              <>
+                <MailOpen className="h-4 w-4" />
+                <span className="hidden sm:inline">Mark as read</span>
+              </>
+            )}
+          </Button>
+        </div>
       </div>
       <div className="bg-background flex-1 overflow-auto">
         {body === undefined ? (
@@ -181,6 +194,7 @@ function Mail(props: MailProps): JSX.Element {
           </pre>
         )}
       </div>
+      <QuickReply mail={data} quoteText={quoteText} />
     </div>
   );
 }

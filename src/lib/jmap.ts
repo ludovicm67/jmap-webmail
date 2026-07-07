@@ -1,8 +1,10 @@
 import { Base64 } from 'js-base64';
-import { Mail, Mailbox } from '../features/mail/types';
+import { Identity, Mail, Mailbox } from '../features/mail/types';
+import { randomString } from './random';
 
 export const JMAP_CORE = 'urn:ietf:params:jmap:core';
 export const JMAP_MAIL = 'urn:ietf:params:jmap:mail';
+export const JMAP_SUBMISSION = 'urn:ietf:params:jmap:submission';
 
 export type JmapSession = {
   apiUrl: string;
@@ -265,10 +267,15 @@ export const fetchMail = async (
               'from',
               'to',
               'cc',
+              'replyTo',
+              'sender',
               'subject',
               'receivedAt',
               'size',
               'preview',
+              'messageId',
+              'inReplyTo',
+              'references',
               'textBody',
               'htmlBody',
               'bodyValues',
@@ -317,34 +324,232 @@ export const fetchMail = async (
   };
 };
 
+// Validate an `Email/set` response and surface any per-id rejection.
+const parseEmailSetResponse = (
+  json: Record<string, unknown> | undefined,
+  ids: string[],
+): JMAPResponse<true> => {
+  if (!json || !json.methodResponses) {
+    return { success: false, message: 'not a valid JMAP response' };
+  }
+  const m = (json.methodResponses as unknown[])[0] as [
+    string,
+    {
+      notUpdated?: Record<string, { description?: string }>;
+      notDestroyed?: Record<string, { description?: string }>;
+    },
+  ];
+  if (!m || m[0] !== 'Email/set') {
+    return { success: false, message: 'not the expected method' };
+  }
+  const rejected = {
+    ...(m[1]?.notUpdated || {}),
+    ...(m[1]?.notDestroyed || {}),
+  };
+  for (const id of ids) {
+    if (rejected[id]) {
+      return {
+        success: false,
+        message: rejected[id]?.description || 'the server rejected the change',
+      };
+    }
+  }
+  return { success: true, data: true };
+};
+
 /**
- * Set (or clear) a keyword on an email, e.g. `$seen` to mark it read/unread.
+ * Set (or clear) a keyword on one or more emails, e.g. `$seen` for read/unread.
  * See https://www.rfc-editor.org/rfc/rfc8621#section-4.6
  */
-export const setEmailKeyword = async (
+export const setEmailsKeyword = async (
+  apiUrl: string,
+  accountId: string,
+  ids: string[],
+  keyword: string,
+  value: boolean,
+  headers?: Record<string, string>,
+): Promise<JMAPResponse<true>> => {
+  const patch = { [`keywords/${keyword}`]: value ? true : null };
+  const update: Record<string, unknown> = {};
+  for (const id of ids) {
+    update[id] = patch;
+  }
+  const json = await postJmap(
+    apiUrl,
+    {
+      using: [JMAP_CORE, JMAP_MAIL],
+      methodCalls: [['Email/set', { accountId, update }, '0']],
+    },
+    headers,
+  );
+  return parseEmailSetResponse(json, ids);
+};
+
+/** Single-email convenience wrapper around {@link setEmailsKeyword}. */
+export const setEmailKeyword = (
   apiUrl: string,
   accountId: string,
   emailId: string,
   keyword: string,
   value: boolean,
   headers?: Record<string, string>,
+): Promise<JMAPResponse<true>> =>
+  setEmailsKeyword(apiUrl, accountId, [emailId], keyword, value, headers);
+
+/** Move emails into a single mailbox (replacing their mailbox membership). */
+export const moveEmails = async (
+  apiUrl: string,
+  accountId: string,
+  ids: string[],
+  targetMailboxId: string,
+  headers?: Record<string, string>,
+): Promise<JMAPResponse<true>> => {
+  const update: Record<string, unknown> = {};
+  for (const id of ids) {
+    update[id] = { mailboxIds: { [targetMailboxId]: true } };
+  }
+  const json = await postJmap(
+    apiUrl,
+    {
+      using: [JMAP_CORE, JMAP_MAIL],
+      methodCalls: [['Email/set', { accountId, update }, '0']],
+    },
+    headers,
+  );
+  return parseEmailSetResponse(json, ids);
+};
+
+/** Permanently destroy emails. */
+export const destroyEmails = async (
+  apiUrl: string,
+  accountId: string,
+  ids: string[],
+  headers?: Record<string, string>,
 ): Promise<JMAPResponse<true>> => {
   const json = await postJmap(
     apiUrl,
     {
       using: [JMAP_CORE, JMAP_MAIL],
+      methodCalls: [['Email/set', { accountId, destroy: ids }, '0']],
+    },
+    headers,
+  );
+  return parseEmailSetResponse(json, ids);
+};
+
+/** Fetch the sending identities (the addresses the user can send "from"). */
+export const fetchIdentities = async (
+  apiUrl: string,
+  accountId: string,
+  headers?: Record<string, string>,
+): Promise<JMAPResponse<Identity[]>> => {
+  const json = await postJmap(
+    apiUrl,
+    {
+      using: [JMAP_CORE, JMAP_SUBMISSION],
+      methodCalls: [['Identity/get', { accountId, ids: null }, '0']],
+    },
+    headers,
+  );
+
+  if (!json || !json.methodResponses) {
+    return { success: false, message: 'not a valid JMAP response' };
+  }
+  const m = (json.methodResponses as unknown[])[0] as [
+    string,
+    { list?: Identity[] },
+  ];
+  if (!m || (m[0] !== 'Identity/get' && m[0] !== 'error')) {
+    return { success: false, message: 'not the expected method' };
+  }
+  if (m[0] === 'error' || !m[1] || !Array.isArray(m[1].list)) {
+    return { success: false, message: 'could not fetch identities' };
+  }
+  return { success: true, data: m[1].list };
+};
+
+// A JMAP messageId value is the Message-ID without the surrounding angle
+// brackets (RFC 8621 §4.1.1 header:Message-ID:asMessageIds).
+const generateMessageId = (fromEmail: string): string => {
+  const domain = fromEmail.split('@')[1] || 'localhost';
+  return `${Date.now()}.${randomString(24)}@${domain}`;
+};
+
+export type SendEmailParams = {
+  identityId: string;
+  from: { name?: string | null; email: string };
+  to: { name?: string | null; email: string }[];
+  subject: string;
+  textBody: string;
+  draftsMailboxId: string;
+  sentMailboxId?: string;
+  inReplyTo?: string[];
+  references?: string[];
+};
+
+/**
+ * Create a draft and submit it in a single request, then move it to Sent.
+ * The canonical JMAP send flow: Email/set create + EmailSubmission/set create
+ * with onSuccessUpdateEmail. Requires the submission capability + an identity.
+ * See https://www.rfc-editor.org/rfc/rfc8621#section-7
+ */
+export const sendEmail = async (
+  apiUrl: string,
+  accountId: string,
+  params: SendEmailParams,
+  headers?: Record<string, string>,
+): Promise<JMAPResponse<true>> => {
+  const {
+    identityId,
+    from,
+    to,
+    subject,
+    textBody,
+    draftsMailboxId,
+    sentMailboxId,
+    inReplyTo,
+    references,
+  } = params;
+
+  const draft: Record<string, unknown> = {
+    mailboxIds: { [draftsMailboxId]: true },
+    keywords: { $draft: true, $seen: true },
+    from: [from],
+    to,
+    subject,
+    messageId: [generateMessageId(from.email)],
+    bodyValues: { body: { value: textBody } },
+    textBody: [{ partId: 'body', type: 'text/plain' }],
+  };
+  if (inReplyTo && inReplyTo.length > 0) {
+    draft.inReplyTo = inReplyTo;
+  }
+  if (references && references.length > 0) {
+    draft.references = references;
+  }
+
+  const onSuccessUpdateEmail: Record<string, unknown> = {
+    'keywords/$draft': null,
+  };
+  if (sentMailboxId) {
+    onSuccessUpdateEmail[`mailboxIds/${sentMailboxId}`] = true;
+    onSuccessUpdateEmail[`mailboxIds/${draftsMailboxId}`] = null;
+  }
+
+  const json = await postJmap(
+    apiUrl,
+    {
+      using: [JMAP_CORE, JMAP_MAIL, JMAP_SUBMISSION],
       methodCalls: [
+        ['Email/set', { accountId, create: { draft } }, '0'],
         [
-          'Email/set',
+          'EmailSubmission/set',
           {
             accountId,
-            update: {
-              [emailId]: {
-                [`keywords/${keyword}`]: value ? true : null,
-              },
-            },
+            create: { sub: { emailId: '#draft', identityId } },
+            onSuccessUpdateEmail: { '#sub': onSuccessUpdateEmail },
           },
-          '0',
+          '1',
         ],
       ],
     },
@@ -354,17 +559,43 @@ export const setEmailKeyword = async (
   if (!json || !json.methodResponses) {
     return { success: false, message: 'not a valid JMAP response' };
   }
+  const responses = json.methodResponses as unknown[];
 
-  const m = (json.methodResponses as unknown[])[0] as [
+  const emailSet = responses[0] as [
     string,
-    { updated?: Record<string, unknown>; notUpdated?: Record<string, unknown> },
+    { notCreated?: Record<string, { description?: string }> },
   ];
-
-  if (!m || m[0] !== 'Email/set') {
-    return { success: false, message: 'not the expected method' };
+  if (!emailSet || emailSet[0] !== 'Email/set') {
+    return { success: false, message: 'could not create the draft' };
   }
-  if (m[1]?.notUpdated && m[1].notUpdated[emailId]) {
-    return { success: false, message: 'the server rejected the update' };
+  if (emailSet[1]?.notCreated?.draft) {
+    return {
+      success: false,
+      message:
+        emailSet[1].notCreated.draft.description ||
+        'could not create the draft',
+    };
+  }
+
+  const subSet = responses[1] as [
+    string,
+    { notCreated?: Record<string, { description?: string }> },
+  ];
+  if (!subSet || subSet[0] === 'error') {
+    return {
+      success: false,
+      message: 'the server does not support sending mail (submission).',
+    };
+  }
+  if (subSet[0] !== 'EmailSubmission/set') {
+    return { success: false, message: 'the message could not be sent' };
+  }
+  if (subSet[1]?.notCreated?.sub) {
+    return {
+      success: false,
+      message:
+        subSet[1].notCreated.sub.description || 'the message could not be sent',
+    };
   }
 
   return { success: true, data: true };
