@@ -1,12 +1,12 @@
 import React from 'react';
 import { createRoot } from 'react-dom/client';
-import 'bulma/css/bulma.min.css';
 import './index.css';
 import App from './App';
 import { store } from './app/store';
 import { Provider } from 'react-redux';
 import { BrowserRouter as Router } from 'react-router';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { ThemeProvider } from '@/components/theme-provider';
 
 const queryClient = new QueryClient();
 
@@ -16,12 +16,14 @@ const root = createRoot(container!); // createRoot(container!) if you use TypeSc
 
 root.render(
   <React.StrictMode>
-    <QueryClientProvider client={queryClient}>
-      <Provider store={store}>
-        <Router>
-          <App />
-        </Router>
-      </Provider>
-    </QueryClientProvider>
+    <ThemeProvider defaultTheme="system" storageKey="jmap-webmail-theme">
+      <QueryClientProvider client={queryClient}>
+        <Provider store={store}>
+          <Router>
+            <App />
+          </Router>
+        </Provider>
+      </QueryClientProvider>
+    </ThemeProvider>
   </React.StrictMode>,
 );

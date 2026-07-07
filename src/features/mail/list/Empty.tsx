@@ -1,12 +1,11 @@
 import { JSX } from 'react';
+import { Inbox } from 'lucide-react';
 
 function Empty(): JSX.Element {
   return (
-    <div className="mail-layout-center">
-      <div className="has-text-weight-bold">
-        Mailbox is empty
-        <nav className="navbar has-no-background"></nav>
-      </div>
+    <div className="text-muted-foreground flex flex-1 flex-col items-center justify-center gap-3 p-6 text-center">
+      <Inbox className="h-10 w-10" />
+      <div className="font-medium">Mailbox is empty</div>
     </div>
   );
 }

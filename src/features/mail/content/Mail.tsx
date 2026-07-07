@@ -1,131 +1,185 @@
-import { JSX } from 'react';
-import { useSelector } from 'react-redux';
+import { JSX, useEffect, useRef } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
 import { useQuery } from '@tanstack/react-query';
+import { Link } from 'react-router';
+import { ChevronLeft, MailOpen, Mail as MailClosed } from 'lucide-react';
 import SanitizedHtml from '../../../components/SanitizedHtml';
-import { fetchMail } from '../../../lib/jmap';
+import { Button } from '@/components/ui/button';
+import { Skeleton } from '@/components/ui/skeleton';
+import { fetchMail, setEmailKeyword } from '../../../lib/jmap';
 import { getLoginPayload } from '../../login/loginSlice';
+import { selectMails, setMailSeen } from '../mailSlice';
+import { Mail as MailType } from '../types';
+import {
+  FEATURE_URL,
+  formatReceivedAt,
+  getFromAddresses,
+  getToAddresses,
+} from '../utils';
 
 type MailProps = {
   mailId: string;
 };
 
-type MailContent = {
-  content: string;
-  type: string;
-};
+type DisplayBody = { value: string; type: string };
 
-type FetchMailContentArgs = {
-  endpoint: string;
-  identifier: string;
-  mailId: string;
-  authorizationHeader: string;
-  downloadUrl: string;
-};
-
-const replaceDownloadUrl = (
-  accountId: string,
-  blobId: string,
-  name: string,
-  type: string,
-  downloadUrl: string,
-  endpoint: string,
-) => {
-  return new URL(
-    downloadUrl
-      .replace(/{accountId}/g, encodeURI(accountId))
-      .replace(/{blobId}/g, encodeURI(blobId))
-      .replace(/{name}/g, encodeURI(name))
-      .replace(/{type}/g, encodeURI(type)),
-    endpoint,
-  ).href;
-};
-
-const fetchMailContent = async (
-  args: FetchMailContentArgs,
-): Promise<MailContent | undefined> => {
-  const { endpoint, identifier, mailId, authorizationHeader, downloadUrl } =
-    args;
-  const mailRequest = await fetchMail(endpoint, identifier, mailId, {
-    Authorization: authorizationHeader,
-  });
-
-  if (!mailRequest.success) {
-    return;
+// Choose the best body part to display and report its media type. Some servers
+// place a text/plain part in `htmlBody`, so we key the rendering off the part's
+// actual type rather than assuming htmlBody == HTML.
+const getDisplayBody = (mail: MailType): DisplayBody | undefined => {
+  const parts =
+    mail.htmlBody && mail.htmlBody.length > 0 ? mail.htmlBody : mail.textBody;
+  if (!parts) {
+    return undefined;
   }
-
-  const mailData = mailRequest.data;
-
-  if (!mailData.htmlBody || mailData.htmlBody.length < 1) {
-    return;
+  for (const part of parts) {
+    const value = part.partId
+      ? mail.bodyValues?.[part.partId]?.value
+      : undefined;
+    if (value !== undefined) {
+      return { value, type: part.type || 'text/plain' };
+    }
   }
-
-  const body = mailData.htmlBody[0];
-
-  if (!body.blobId) {
-    return;
-  }
-
-  const blobUrl = replaceDownloadUrl(
-    identifier,
-    body.blobId,
-    'content',
-    `${body.type};charset=${body.charset}`,
-    downloadUrl,
-    endpoint,
-  );
-
-  return fetch(blobUrl, {
-    headers: new Headers({
-      'Content-Type': 'application/json',
-      Authorization: authorizationHeader,
-    }),
-  })
-    .then((r) => r.text())
-    .then((t) => ({
-      content: t,
-      type: body.type,
-    }));
+  return undefined;
 };
 
 function Mail(props: MailProps): JSX.Element {
   const mailId = props.mailId;
-  const loginDetails = useSelector(getLoginPayload);
-  const { authorizationHeader, endpoint, identifier, downloadUrl } =
-    loginDetails;
+  const dispatch = useDispatch();
+  const { authorizationHeader, apiUrl, accountId } =
+    useSelector(getLoginPayload);
+  const mailFromList = useSelector(selectMails).find((m) => m.id === mailId);
+  const autoMarked = useRef<string | null>(null);
 
   const { isLoading, error, data } = useQuery({
     queryKey: [`mail/${mailId}`],
-    queryFn: () =>
-      fetchMailContent({
-        endpoint,
-        identifier,
-        mailId,
-        authorizationHeader,
-        downloadUrl,
-      }),
+    queryFn: async () => {
+      const request = await fetchMail(apiUrl, accountId, mailId, {
+        Authorization: authorizationHeader,
+      });
+      if (!request.success) {
+        throw new Error(request.message);
+      }
+      return request.data;
+    },
   });
 
+  const setSeen = async (seen: boolean) => {
+    dispatch(setMailSeen({ mailId, seen }));
+    await setEmailKeyword(apiUrl, accountId, mailId, '$seen', seen, {
+      Authorization: authorizationHeader,
+    });
+  };
+
+  // Mark the email as read the first time it is opened (unread == $seen not set).
+  useEffect(() => {
+    if (!data || autoMarked.current === mailId) {
+      return;
+    }
+    if (data.keywords?.$seen !== true) {
+      autoMarked.current = mailId;
+      setSeen(true);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [data, mailId]);
+
   if (isLoading) {
-    return <p>Loading…</p>;
+    return (
+      <div className="flex flex-1 flex-col gap-4 p-6">
+        <Skeleton className="h-6 w-2/3" />
+        <Skeleton className="h-4 w-1/3" />
+        <Skeleton className="h-40 w-full" />
+      </div>
+    );
   }
 
   if (error || !data) {
     return (
-      <p>
-        An error occured while trying to load the email content… Please try
-        refreshing the page!
-      </p>
+      <div className="text-muted-foreground flex flex-1 items-center justify-center p-6 text-center">
+        <p>
+          An error occured while trying to load the email content… Please try
+          refreshing the page!
+        </p>
+      </div>
     );
   }
 
+  const seen = mailFromList
+    ? mailFromList.keywords?.$seen === true
+    : data.keywords?.$seen === true;
+
+  const body = getDisplayBody(data);
+  const isHtml = body?.type === 'text/html';
+
   return (
-    <div className="mail-layout-center has-background-white is-flex-direction-column">
-      <div className="has-text-left">
-        {(data.type === 'text/plain' && (
-          <pre className="p-4 has-background-white">
-            <SanitizedHtml html={data.content} />
+    <div className="flex flex-1 flex-col overflow-hidden">
+      <div className="flex items-start gap-2 border-b px-4 py-3">
+        <Button
+          asChild
+          variant="ghost"
+          size="icon"
+          className="mt-0.5 md:hidden"
+        >
+          <Link to={FEATURE_URL} aria-label="Back to mailboxes">
+            <ChevronLeft className="h-4 w-4" />
+          </Link>
+        </Button>
+        <div className="min-w-0 flex-1">
+          <h1 className="truncate text-lg font-semibold">
+            {data.subject || '(no subject)'}
+          </h1>
+          <div className="text-muted-foreground mt-1 text-sm">
+            <div className="break-words">
+              <span className="text-foreground font-medium">From:</span>{' '}
+              {getFromAddresses(data)}
+            </div>
+            {data.to && data.to.length > 0 && (
+              <div className="break-words">
+                <span className="text-foreground font-medium">To:</span>{' '}
+                {getToAddresses(data)}
+              </div>
+            )}
+            {data.receivedAt && <div>{formatReceivedAt(data.receivedAt)}</div>}
+          </div>
+        </div>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => setSeen(!seen)}
+          className="mt-0.5 shrink-0"
+        >
+          {seen ? (
+            <>
+              <MailClosed className="h-4 w-4" />
+              <span className="hidden sm:inline">Mark as unread</span>
+            </>
+          ) : (
+            <>
+              <MailOpen className="h-4 w-4" />
+              <span className="hidden sm:inline">Mark as read</span>
+            </>
+          )}
+        </Button>
+      </div>
+      <div className="bg-background flex-1 overflow-auto">
+        {body === undefined ? (
+          <p className="text-muted-foreground p-4">
+            This email has no displayable content.
+          </p>
+        ) : isHtml ? (
+          // HTML emails are authored for a light background; render them on
+          // white so dark theme doesn't leave dark text on a dark surface.
+          <div className="p-4">
+            <SanitizedHtml
+              html={body.value}
+              className="rounded-md bg-white p-4 text-neutral-900"
+            />
+          </div>
+        ) : (
+          <pre className="p-4 font-mono text-sm break-words whitespace-pre-wrap">
+            {body.value}
           </pre>
-        )) || <SanitizedHtml html={data.content} />}
+        )}
       </div>
     </div>
   );

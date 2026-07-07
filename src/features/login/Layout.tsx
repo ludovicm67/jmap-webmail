@@ -1,15 +1,35 @@
 import { JSX, useState } from 'react';
-import { batch, useDispatch } from 'react-redux';
+import { useDispatch } from 'react-redux';
+import { Mail as MailIcon } from 'lucide-react';
 import ConditionalDisplay from '../../components/ConditionalDisplay';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Button } from '@/components/ui/button';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import {
   discoverJmapEndpoint,
   fetchMailboxes,
   fetchMails,
+  fetchSession,
   getBasicToken,
-  tryCredentials,
+  getMailAccountId,
 } from '../../lib/jmap';
 import { setList, setMailboxes } from '../mail/mailSlice';
-import './Layout.css';
 import { login } from './loginSlice';
 
 enum LoginStep {
@@ -65,6 +85,7 @@ function Layout(): JSX.Element {
   const actionButton = async () => {
     if (loading) return;
     setLoading(true);
+    setError('');
 
     if (step === LoginStep.Identifier) {
       setLoading(false);
@@ -83,37 +104,41 @@ function Layout(): JSX.Element {
     }
 
     if (step === LoginStep.Credentials) {
-      let userInfos;
       const authorizationHeader = `Basic ${getBasicToken(
         identifier,
         password,
       )}`;
-      try {
-        userInfos = await tryCredentials(endpoint, {
-          Authorization: authorizationHeader,
-        });
-      } catch (e) {
-        setError('Bad credentials. Please retry.');
+
+      const sessionRequest = await fetchSession(endpoint, {
+        Authorization: authorizationHeader,
+      });
+      if (!sessionRequest.success) {
+        setError(sessionRequest.message);
         setLoading(false);
         return;
       }
 
-      let downloadUrl = '';
-      if (userInfos.downloadUrl) {
-        downloadUrl = userInfos.downloadUrl;
+      const session = sessionRequest.data;
+      const accountId = getMailAccountId(session);
+      if (!accountId) {
+        setError('No mail account is available for these credentials.');
+        setLoading(false);
+        return;
       }
 
-      const mailboxesRequest = await fetchMailboxes(endpoint, identifier, {
+      const apiUrl = session.apiUrl;
+      const downloadUrl = session.downloadUrl || '';
+
+      const mailboxesRequest = await fetchMailboxes(apiUrl, accountId, {
         Authorization: authorizationHeader,
       });
-
       if (!mailboxesRequest.success) {
         setError(mailboxesRequest.message);
         setLoading(false);
         return;
       }
 
-      const mailsRequest = await fetchMails(endpoint, identifier, {
+      const mailsRequest = await fetchMails(apiUrl, accountId, {
         Authorization: authorizationHeader,
       });
       if (!mailsRequest.success) {
@@ -122,13 +147,18 @@ function Layout(): JSX.Element {
         return;
       }
 
-      batch(() => {
-        dispatch(
-          login({ identifier, authorizationHeader, downloadUrl, endpoint }),
-        );
-        dispatch(setMailboxes(mailboxesRequest.data));
-        dispatch(setList(mailsRequest.data));
-      });
+      dispatch(
+        login({
+          identifier,
+          authorizationHeader,
+          apiUrl,
+          downloadUrl,
+          accountId,
+          endpoint,
+        }),
+      );
+      dispatch(setMailboxes(mailboxesRequest.data));
+      dispatch(setList(mailsRequest.data));
 
       return;
     }
@@ -137,116 +167,103 @@ function Layout(): JSX.Element {
   };
 
   return (
-    <div className="login-layout">
-      <div>
-        {error && (
-          <article className="message is-danger">
-            <div className="message-body">{error}</div>
-          </article>
-        )}
+    <div className="flex flex-1 flex-col items-center justify-center overflow-auto p-4">
+      <Card className="w-full max-w-sm">
+        <CardHeader className="items-center text-center">
+          <div className="bg-primary text-primary-foreground mx-auto flex h-11 w-11 items-center justify-center rounded-full">
+            <MailIcon className="h-5 w-5" />
+          </div>
+          <CardTitle className="mt-2">Sign in to JMAP Webmail</CardTitle>
+          <CardDescription>
+            Enter your email address to get started.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="flex flex-col gap-4">
+          {error && (
+            <Alert variant="destructive">
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
+          )}
 
-        <div className="field">
-          <label className="label" htmlFor="login-form-identifier">
-            Identifier
-          </label>
-          <div className="control">
-            <input
+          <div className="flex flex-col gap-2">
+            <Label htmlFor="login-form-identifier">Identifier</Label>
+            <Input
               autoFocus
               id="login-form-identifier"
-              className="input"
               type="email"
               placeholder="john.doe@example.com"
               value={identifier}
               onChange={(e) => setIdentifier(e.target.value)}
             />
           </div>
-        </div>
 
-        <ConditionalDisplay
-          cond={more || step === LoginStep.Endpoint || hasCustomEndpoint}
-        >
-          <div className="field">
-            <label className="label" htmlFor="login-form-endpoint">
-              Endpoint
-            </label>
-            <div className="control">
-              <input
+          <ConditionalDisplay
+            cond={more || step === LoginStep.Endpoint || hasCustomEndpoint}
+          >
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="login-form-endpoint">Endpoint</Label>
+              <Input
                 id="login-form-endpoint"
-                className="input"
                 type="url"
                 placeholder="https://example.com"
                 value={endpoint}
                 onChange={(e) => setEndpoint(e.target.value)}
               />
-            </div>
-            <p className="help">
-              <span
-                className="has-text-primary has-pointer"
+              <button
+                type="button"
+                className="text-primary self-start text-sm hover:underline"
                 onClick={discoverEndpoint}
               >
                 Discover endpoint
-              </span>
-            </p>
-          </div>
-        </ConditionalDisplay>
-
-        <ConditionalDisplay cond={more}>
-          <div className="field">
-            <label className="label" htmlFor="login-form-method">
-              Authentication method
-            </label>
-            <div className="control">
-              <div className="select is-fullwidth">
-                <select id="login-form-method" disabled>
-                  <option value={method}>Password</option>
-                </select>
-              </div>
+              </button>
             </div>
-            <p className="help">
-              <span className="has-text-primary has-pointer">
-                Discover the available authentication methods
-              </span>
-            </p>
-          </div>
-        </ConditionalDisplay>
+          </ConditionalDisplay>
 
-        <ConditionalDisplay cond={more || step >= LoginStep.Credentials}>
-          <div className="field">
-            <label className="label" htmlFor="login-form-password">
-              Password
-            </label>
-            <div className="control">
-              <input
+          <ConditionalDisplay cond={more}>
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="login-form-method">Authentication method</Label>
+              <Select value={method} disabled>
+                <SelectTrigger id="login-form-method" className="w-full">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={method}>Password</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </ConditionalDisplay>
+
+          <ConditionalDisplay cond={more || step >= LoginStep.Credentials}>
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="login-form-password">Password</Label>
+              <Input
                 id="login-form-password"
-                className="input"
                 type="password"
                 placeholder="********"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
               />
             </div>
-          </div>
-        </ConditionalDisplay>
+          </ConditionalDisplay>
 
-        <div className="login-layout-bottom">
-          <button
-            className="button is-primary"
+          <Button
+            className="w-full"
             onClick={() => actionButton()}
-            disabled={identifier === '' && !more}
+            disabled={loading || (identifier === '' && !more)}
           >
             {((more || step === LoginStep.Credentials) && 'Sign In') ||
               'Next »'}
-          </button>
-          <label className="checkbox">
-            <input
-              type="checkbox"
+          </Button>
+
+          <label className="flex items-center gap-2 text-sm">
+            <Checkbox
               checked={more}
-              onChange={(e) => setMore(e.target.checked)}
+              onCheckedChange={(checked) => setMore(checked === true)}
             />
             <span>More options</span>
           </label>
-        </div>
-      </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }

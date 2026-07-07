@@ -1,8 +1,7 @@
 import React, { useRef, useEffect, useState } from 'react';
 import DOMPurify from 'dompurify';
 
-export interface SanitizedHtmlProps
-  extends React.HTMLAttributes<HTMLDivElement> {
+export interface SanitizedHtmlProps extends React.HTMLAttributes<HTMLDivElement> {
   html: string;
 }
 

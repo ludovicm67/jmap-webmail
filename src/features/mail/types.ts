@@ -12,15 +12,36 @@ export type MailFrom = {
   email?: string | null;
 };
 
+export type EmailBodyPart = {
+  partId?: string | null;
+  blobId?: string | null;
+  size?: number;
+  type?: string;
+  charset?: string;
+  name?: string | null;
+};
+
+export type EmailBodyValue = {
+  value: string;
+  isEncodingProblem?: boolean;
+  isTruncated?: boolean;
+};
+
 export type Mail = {
   from: MailFrom[];
+  to?: MailFrom[];
+  cc?: MailFrom[];
   hasAttachment: boolean;
   id: string;
   mailboxIds: Record<string, boolean>;
   preview: string;
   subject: string;
+  receivedAt?: string;
+  size?: number;
   keywords: Record<string, boolean>;
-  htmlBody?: Record<string, string>[];
+  textBody?: EmailBodyPart[];
+  htmlBody?: EmailBodyPart[];
+  bodyValues?: Record<string, EmailBodyValue>;
 };
 
 export const newMailbox = (
