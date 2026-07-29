@@ -6,6 +6,17 @@ export const JMAP_CORE = 'urn:ietf:params:jmap:core';
 export const JMAP_MAIL = 'urn:ietf:params:jmap:mail';
 export const JMAP_SUBMISSION = 'urn:ietf:params:jmap:submission';
 export const JMAP_WEBSOCKET = 'urn:ietf:params:jmap:websocket';
+export const JMAP_CONTACTS = 'urn:ietf:params:jmap:contacts';
+export const JMAP_CONTACTS_PARSE = 'urn:ietf:params:jmap:contacts:parse';
+export const JMAP_CALENDARS = 'urn:ietf:params:jmap:calendars';
+export const JMAP_CALENDARS_PARSE = 'urn:ietf:params:jmap:calendars:parse';
+export const JMAP_QUOTA = 'urn:ietf:params:jmap:quota';
+export const JMAP_VACATION = 'urn:ietf:params:jmap:vacationresponse';
+export const JMAP_SIEVE = 'urn:ietf:params:jmap:sieve';
+export const JMAP_FILENODE = 'urn:ietf:params:jmap:filenode';
+export const JMAP_PRINCIPALS = 'urn:ietf:params:jmap:principals';
+export const JMAP_AVAILABILITY = 'urn:ietf:params:jmap:principals:availability';
+export const JMAP_WEBPUSH = 'urn:ietf:params:jmap:webpush-vapid';
 
 export type JmapSession = {
   apiUrl: string;
@@ -72,7 +83,7 @@ export const probeAuthMethods = async (
   }
 };
 
-type JMAPResponse<T> =
+export type JMAPResponse<T> =
   | {
       success: false;
       message: string;
@@ -152,6 +163,220 @@ export const getMailAccountId = (session: JmapSession): string | undefined => {
   return session.primaryAccounts?.[JMAP_MAIL];
 };
 
+export const getContactsAccountId = (
+  session: JmapSession,
+): string | undefined => session.primaryAccounts?.[JMAP_CONTACTS];
+
+export const getCalendarsAccountId = (
+  session: JmapSession,
+): string | undefined => session.primaryAccounts?.[JMAP_CALENDARS];
+
+export const hasContacts = (session: JmapSession): boolean =>
+  Boolean(getContactsAccountId(session));
+
+export const hasCalendars = (session: JmapSession): boolean =>
+  Boolean(getCalendarsAccountId(session));
+
+/** Account id advertised for a given capability, or '' if unsupported. */
+const primaryAccountFor = (session: JmapSession, cap: string): string =>
+  session.primaryAccounts?.[cap] || '';
+
+export const getSieveAccountId = (session: JmapSession): string =>
+  primaryAccountFor(session, JMAP_SIEVE);
+
+export const getFilesAccountId = (session: JmapSession): string =>
+  primaryAccountFor(session, JMAP_FILENODE);
+
+export const getVacationAccountId = (session: JmapSession): string =>
+  primaryAccountFor(session, JMAP_VACATION);
+
+export const getQuotaAccountId = (session: JmapSession): string =>
+  primaryAccountFor(session, JMAP_QUOTA);
+
+export const hasCapability = (session: JmapSession, cap: string): boolean =>
+  session.capabilities?.[cap] !== undefined;
+
+/** The Web Push VAPID application server key, if the server advertises it. */
+export const getVapidKey = (session: JmapSession): string => {
+  const cap = session.capabilities?.[JMAP_WEBPUSH] as
+    { applicationServerKey?: string } | undefined;
+  return cap?.applicationServerKey || '';
+};
+
+export type UploadedBlob = { blobId: string; type: string; size: number };
+
+/**
+ * Upload raw bytes to the session `uploadUrl` (its `{accountId}` placeholder is
+ * substituted) and return the resulting blobId. Used for attachments, Sieve
+ * scripts, file storage and .vcf/.ics import.
+ * See https://www.rfc-editor.org/rfc/rfc8620#section-6.1
+ */
+export const uploadBlob = async (
+  uploadUrl: string,
+  accountId: string,
+  body: Blob | ArrayBuffer | string,
+  contentType: string,
+  headers?: Record<string, string>,
+): Promise<JMAPResponse<UploadedBlob>> => {
+  try {
+    const url = uploadUrl.replace('{accountId}', accountId);
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: new Headers({ ...headers, 'Content-Type': contentType }),
+      body,
+    });
+    if (!response.ok) {
+      return { success: false, message: `upload failed (${response.status})` };
+    }
+    const json = (await response.json()) as Partial<UploadedBlob>;
+    if (!json?.blobId) {
+      return { success: false, message: 'the server returned no blobId' };
+    }
+    return {
+      success: true,
+      data: {
+        blobId: json.blobId,
+        type: json.type || contentType,
+        size: json.size ?? 0,
+      },
+    };
+  } catch {
+    return { success: false, message: 'the upload could not be completed' };
+  }
+};
+
+/** Fill the `{accountId}/{blobId}/{name}?accept={type}` download template. */
+export const blobDownloadUrl = (
+  downloadUrl: string,
+  accountId: string,
+  blobId: string,
+  name: string,
+  type: string,
+): string =>
+  downloadUrl
+    .replace('{accountId}', accountId)
+    .replace('{blobId}', blobId)
+    .replace('{name}', encodeURIComponent(name))
+    .replace('{type}', encodeURIComponent(type));
+
+/**
+ * Download a blob through an authenticated request and hand it to the browser
+ * as a file. A plain `<a href>` can't carry the Authorization header the app
+ * holds, so we fetch the bytes ourselves and trigger a download from a blob URL.
+ */
+export const downloadBlob = async (
+  downloadUrl: string,
+  accountId: string,
+  blobId: string,
+  name: string,
+  type: string,
+  headers?: Record<string, string>,
+): Promise<JMAPResponse<true>> => {
+  try {
+    const url = blobDownloadUrl(downloadUrl, accountId, blobId, name, type);
+    const response = await fetch(url, { headers: new Headers(headers) });
+    if (!response.ok) {
+      return {
+        success: false,
+        message: `download failed (${response.status})`,
+      };
+    }
+    const blob = await response.blob();
+    const objectUrl = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = objectUrl;
+    a.download = name || 'download';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(objectUrl);
+    return { success: true, data: true };
+  } catch {
+    return { success: false, message: 'the download could not be completed' };
+  }
+};
+
+/** Fetch a blob's raw text through an authenticated request (e.g. a Sieve script). */
+export const fetchBlobText = async (
+  downloadUrl: string,
+  accountId: string,
+  blobId: string,
+  header: string,
+  contentType = 'application/octet-stream',
+): Promise<JMAPResponse<string>> => {
+  try {
+    const url = blobDownloadUrl(
+      downloadUrl,
+      accountId,
+      blobId,
+      'blob',
+      contentType,
+    );
+    const response = await fetch(url, {
+      headers: new Headers({ Authorization: header }),
+    });
+    if (!response.ok) {
+      return {
+        success: false,
+        message: `download failed (${response.status})`,
+      };
+    }
+    return { success: true, data: await response.text() };
+  } catch {
+    return { success: false, message: 'could not download the blob' };
+  }
+};
+
+/** Validate a `Foo/set` response for a single create/update/destroy id. */
+export const parseSetResponse = (
+  json: Record<string, unknown> | undefined,
+  method: string,
+  kind: 'created' | 'updated' | 'destroyed',
+  id: string,
+): JMAPResponse<true> => {
+  const m = (json?.methodResponses as unknown[] | undefined)?.[0] as
+    | [string, Record<string, Record<string, { description?: string }>>]
+    | undefined;
+  if (!m || (m[0] !== method && m[0] !== 'error')) {
+    return { success: false, message: 'not a valid JMAP response' };
+  }
+  const notKey =
+    kind === 'created'
+      ? 'notCreated'
+      : kind === 'updated'
+        ? 'notUpdated'
+        : 'notDestroyed';
+  const rejected = m[1]?.[notKey]?.[id];
+  if (rejected) {
+    return {
+      success: false,
+      message: rejected.description || 'the server rejected the change',
+    };
+  }
+  return { success: true, data: true };
+};
+
+export type JmapAccount = { id: string; name: string; isPersonal: boolean };
+
+/**
+ * Every account in the session that exposes the mail capability — the primary
+ * one plus any shared/delegated mailboxes. Used by the account switcher.
+ */
+export const getMailAccounts = (session: JmapSession): JmapAccount[] => {
+  const primary = getMailAccountId(session);
+  return Object.entries(session.accounts ?? {})
+    .filter(
+      ([id, account]) =>
+        id === primary ||
+        account.accountCapabilities?.[JMAP_MAIL] !== undefined,
+    )
+    .map(([id, account]) => ({
+      id,
+      name: account.name,
+      isPersonal: account.isPersonal,
+    }));
+};
+
 /**
  * The JMAP-over-WebSocket URL if the server advertises it with push support,
  * used to receive StateChange notifications. Returns undefined otherwise.
@@ -176,7 +401,7 @@ export const hasSubmissionCapability = (session: JmapSession): boolean => {
   return Boolean(session.primaryAccounts?.[JMAP_SUBMISSION]);
 };
 
-const postJmap = async (
+export const postJmap = async (
   apiUrl: string,
   body: unknown,
   headers?: Record<string, string>,
@@ -348,6 +573,7 @@ export const fetchMail = async (
               'references',
               'textBody',
               'htmlBody',
+              'attachments',
               'bodyValues',
             ],
             fetchTextBodyValues: true,
@@ -545,6 +771,13 @@ const generateMessageId = (fromEmail: string): string => {
   return `${Date.now()}.${randomString(24)}@${domain}`;
 };
 
+export type OutgoingAttachment = {
+  blobId: string;
+  type: string;
+  name: string;
+  size?: number;
+};
+
 export type SendEmailParams = {
   identityId: string;
   from: { name?: string | null; email: string };
@@ -555,6 +788,7 @@ export type SendEmailParams = {
   sentMailboxId?: string;
   inReplyTo?: string[];
   references?: string[];
+  attachments?: OutgoingAttachment[];
 };
 
 /**
@@ -579,6 +813,7 @@ export const sendEmail = async (
     sentMailboxId,
     inReplyTo,
     references,
+    attachments,
   } = params;
 
   const draft: Record<string, unknown> = {
@@ -596,6 +831,15 @@ export const sendEmail = async (
   }
   if (references && references.length > 0) {
     draft.references = references;
+  }
+  if (attachments && attachments.length > 0) {
+    draft.attachments = attachments.map((a) => ({
+      blobId: a.blobId,
+      type: a.type,
+      name: a.name,
+      size: a.size,
+      disposition: 'attachment',
+    }));
   }
 
   const onSuccessUpdateEmail: Record<string, unknown> = {

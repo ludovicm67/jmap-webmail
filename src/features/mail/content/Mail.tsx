@@ -2,11 +2,19 @@ import { JSX, useEffect, useRef } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router';
-import { ChevronLeft, MailOpen, Mail as MailClosed, Reply } from 'lucide-react';
+import {
+  ChevronLeft,
+  Download,
+  MailOpen,
+  Mail as MailClosed,
+  Paperclip,
+  Reply,
+} from 'lucide-react';
 import SanitizedHtml from '../../../components/SanitizedHtml';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import { fetchMail, setEmailKeyword } from '../../../lib/jmap';
+import { downloadBlob, fetchMail, setEmailKeyword } from '../../../lib/jmap';
+import { EmailBodyPart } from '../types';
 import { getLoginPayload, selectCanSubmit } from '../../login/loginSlice';
 import { selectMails, setMailSeen } from '../mailSlice';
 import { Mail as MailType } from '../types';
@@ -25,6 +33,25 @@ type MailProps = {
 };
 
 type DisplayBody = { value: string; type: string };
+
+const formatBytes = (bytes?: number): string => {
+  if (!bytes) return '';
+  const units = ['B', 'KB', 'MB', 'GB'];
+  let value = bytes;
+  let unit = 0;
+  while (value >= 1024 && unit < units.length - 1) {
+    value /= 1024;
+    unit += 1;
+  }
+  return `${value.toFixed(value < 10 && unit > 0 ? 1 : 0)} ${units[unit]}`;
+};
+
+// Real attachments to offer for download: skip inline parts (an image referenced
+// by a `cid:` in the HTML body) which the message renders itself.
+const downloadableAttachments = (mail: MailType): EmailBodyPart[] =>
+  (mail.attachments ?? []).filter(
+    (a) => a.blobId && a.disposition !== 'inline' && !a.cid,
+  );
 
 // Choose the best body part to display and report its media type. Some servers
 // place a text/plain part in `htmlBody`, so we key the rendering off the part's
@@ -49,8 +76,12 @@ const getDisplayBody = (mail: MailType): DisplayBody | undefined => {
 function Mail(props: MailProps): JSX.Element {
   const mailId = props.mailId;
   const dispatch = useDispatch();
-  const { authorizationHeader, apiUrl, accountId } =
-    useSelector(getLoginPayload);
+  const {
+    authorizationHeader,
+    apiUrl,
+    downloadUrl,
+    activeAccountId: accountId,
+  } = useSelector(getLoginPayload);
   const canSubmit = useSelector(selectCanSubmit);
   const mailFromList = useSelector(selectMails).find((m) => m.id === mailId);
   const autoMarked = useRef<string | null>(null);
@@ -113,6 +144,7 @@ function Mail(props: MailProps): JSX.Element {
     : data.keywords?.$seen === true;
 
   const body = getDisplayBody(data);
+  const attachments = downloadableAttachments(data);
   const isHtml = body?.type === 'text/html';
   // Only quote plain-text bodies; HTML would need stripping to quote cleanly.
   const quoteText = body && !isHtml ? body.value : undefined;
@@ -195,6 +227,47 @@ function Mail(props: MailProps): JSX.Element {
           <pre className="p-4 font-mono text-sm break-words whitespace-pre-wrap">
             {body.value}
           </pre>
+        )}
+        {attachments.length > 0 && (
+          <div className="border-t px-4 py-3">
+            <div className="text-muted-foreground mb-2 flex items-center gap-1.5 text-sm font-medium">
+              <Paperclip className="h-4 w-4" />
+              {attachments.length} attachment
+              {attachments.length > 1 ? 's' : ''}
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {attachments.map((a) => (
+                <Button
+                  key={a.blobId}
+                  variant="outline"
+                  size="sm"
+                  className="h-auto gap-2 py-1.5"
+                  onClick={() =>
+                    downloadBlob(
+                      downloadUrl,
+                      accountId,
+                      a.blobId!,
+                      a.name || 'attachment',
+                      a.type || 'application/octet-stream',
+                      { Authorization: authorizationHeader },
+                    )
+                  }
+                >
+                  <Download className="h-4 w-4 shrink-0" />
+                  <span className="flex flex-col items-start">
+                    <span className="max-w-52 truncate">
+                      {a.name || '(unnamed)'}
+                    </span>
+                    {a.size ? (
+                      <span className="text-muted-foreground text-xs">
+                        {formatBytes(a.size)}
+                      </span>
+                    ) : null}
+                  </span>
+                </Button>
+              ))}
+            </div>
+          </div>
         )}
       </div>
       {canSubmit && <QuickReply mail={data} quoteText={quoteText} />}

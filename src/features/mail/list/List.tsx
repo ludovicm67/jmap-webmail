@@ -22,8 +22,11 @@ import Empty from './Empty';
 function List(): JSX.Element {
   const dispatch = useDispatch();
   const routeParams = useParams<{ mailboxId?: string; mailId?: string }>();
-  const { apiUrl, accountId, authorizationHeader } =
-    useSelector(getLoginPayload);
+  const {
+    apiUrl,
+    activeAccountId: accountId,
+    authorizationHeader,
+  } = useSelector(getLoginPayload);
   const [refreshing, setRefreshing] = useState(false);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   let mailboxId = routeParams.mailboxId;

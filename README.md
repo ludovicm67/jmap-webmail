@@ -2,6 +2,22 @@
 
 This is a webmail client for JMAP protocol.
 
+Every section is **capability-gated**: the left tool rail only shows what the
+signed-in server actually advertises.
+
+- **Mail** — read/compose/reply, mark read, bulk actions, **attachments**
+  (upload + download), a **contact picker** in the composer, live push updates.
+- **Contacts** — full CRUD, plus **.vcf import** (`ContactCard/parse`).
+- **Calendar** — day / week / month / year views, a mini-month navigator, a
+  per-calendar show/hide list, event CRUD, **.ics import**, and free/busy hints
+  from `Principal/getAvailability`.
+- **Files** — browse/upload/download/delete file storage (`FileNode`).
+- **Filters** — manage server-side **Sieve** scripts (edit, validate, activate).
+- **Settings** — vacation responder, storage quota, and **browser push
+  notifications** (Web Push via a service worker).
+- **Switching** — a header account switcher (shared mailboxes) and a send-from
+  identity switcher (used by compose and quick reply).
+
 ## Run it locally
 
 ```sh

@@ -1,9 +1,11 @@
 import { useSelector } from 'react-redux';
-import { useQuery } from '@tanstack/react-query';
-import { fetchIdentities, sendEmail } from '../../../lib/jmap';
-import { getLoginPayload } from '../../login/loginSlice';
+import { OutgoingAttachment, sendEmail } from '../../../lib/jmap';
+import {
+  getLoginPayload,
+  selectActiveIdentityId,
+  selectIdentities,
+} from '../../login/loginSlice';
 import { selectMailboxes } from '../mailSlice';
-import { Identity } from '../types';
 import { findMailboxByRole, parseRecipients } from './utils';
 
 export type ComposeFields = {
@@ -13,32 +15,21 @@ export type ComposeFields = {
   identityId?: string;
   inReplyTo?: string[];
   references?: string[];
+  attachments?: OutgoingAttachment[];
 };
 
 export type SendResult = { success: boolean; message?: string };
 
 /**
- * Shared sending logic for the compose dialog and the quick-reply box:
- * loads the available identities and turns a set of fields into a JMAP send.
+ * Shared sending logic for the compose dialog and the quick-reply box. Uses the
+ * account's identities (loaded into the store at login) and defaults to the
+ * currently selected send-from identity.
  */
 export const useComposer = () => {
   const login = useSelector(getLoginPayload);
   const mailboxes = useSelector(selectMailboxes);
-
-  const { data: identities } = useQuery({
-    queryKey: ['identities'],
-    queryFn: async (): Promise<Identity[]> => {
-      const request = await fetchIdentities(login.apiUrl, login.accountId, {
-        Authorization: login.authorizationHeader,
-      });
-      if (!request.success) {
-        throw new Error(request.message);
-      }
-      return request.data;
-    },
-    staleTime: Infinity,
-    enabled: Boolean(login.apiUrl && login.accountId),
-  });
+  const identities = useSelector(selectIdentities);
+  const activeIdentityId = useSelector(selectActiveIdentityId);
 
   const send = async (fields: ComposeFields): Promise<SendResult> => {
     const recipients = parseRecipients(fields.to);
@@ -46,8 +37,8 @@ export const useComposer = () => {
       return { success: false, message: 'Please add at least one recipient.' };
     }
 
-    const identity =
-      identities?.find((i) => i.id === fields.identityId) || identities?.[0];
+    const wantedId = fields.identityId || activeIdentityId;
+    const identity = identities.find((i) => i.id === wantedId) || identities[0];
     if (!identity) {
       return {
         success: false,
@@ -66,7 +57,7 @@ export const useComposer = () => {
 
     const result = await sendEmail(
       login.apiUrl,
-      login.accountId,
+      login.activeAccountId,
       {
         identityId: identity.id,
         from: { name: identity.name, email: identity.email },
@@ -77,6 +68,7 @@ export const useComposer = () => {
         sentMailboxId: sent?.id,
         inReplyTo: fields.inReplyTo,
         references: fields.references,
+        attachments: fields.attachments,
       },
       { Authorization: login.authorizationHeader },
     );
@@ -86,5 +78,5 @@ export const useComposer = () => {
       : { success: false, message: result.message };
   };
 
-  return { identities: identities || [], send };
+  return { identities, activeIdentityId, send };
 };

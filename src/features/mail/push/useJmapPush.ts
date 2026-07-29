@@ -34,8 +34,12 @@ type StateChange = {
  */
 export const useJmapPush = (): void => {
   const dispatch = useDispatch();
-  const { authorizationHeader, apiUrl, accountId, webSocketUrl } =
-    useSelector(getLoginPayload);
+  const {
+    authorizationHeader,
+    apiUrl,
+    activeAccountId: accountId,
+    webSocketUrl,
+  } = useSelector(getLoginPayload);
 
   useEffect(() => {
     if (!webSocketUrl || !apiUrl || !accountId) {

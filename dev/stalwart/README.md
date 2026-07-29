@@ -40,6 +40,15 @@ random password; the recovery admin (`admin` / `changeme`) always works.
 To try sending: sign in as `test@example.org`, **Compose** a message to
 `alice@example.org`, then sign in as Alice to see it arrive.
 
+The setup also seeds, for `test@example.org`: a **second identity** (so the header
+"Send as" switcher has options), a couple of **contacts** and **calendar events**
+(for the Contacts and Calendar sections), a **Sieve filter** (Filters tool) and a
+**Documents folder with a file** (Files tool), and **shares Bob's inbox** with test
+— so the session exposes two mailboxes and the header **account switcher** is
+demoable. Stalwart advertises many JMAP capabilities (contacts, calendars, sieve,
+filenode, quota, vacationresponse, blob, webpush-vapid, principals), and the webmail
+lights up a left-rail tool for each one it finds.
+
 ## Integration tests
 
 [`test/jmap.integration.test.ts`](../../test/jmap.integration.test.ts) exercises

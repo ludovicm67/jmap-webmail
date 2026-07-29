@@ -22,13 +22,26 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import {
+  JMAP_AVAILABILITY,
+  JMAP_CALENDARS_PARSE,
+  JMAP_CONTACTS_PARSE,
   discoverJmapEndpoint,
+  fetchIdentities,
   fetchMailboxes,
   fetchMails,
   fetchSession,
   getBasicToken,
+  getCalendarsAccountId,
+  getContactsAccountId,
+  getFilesAccountId,
   getMailAccountId,
+  getMailAccounts,
+  getQuotaAccountId,
+  getSieveAccountId,
+  getVacationAccountId,
+  getVapidKey,
   getWebSocketUrl,
+  hasCapability,
   hasSubmissionCapability,
   probeAuthMethods,
 } from '../../lib/jmap';
@@ -151,8 +164,23 @@ function Layout(): JSX.Element {
 
     const apiUrl = session.apiUrl;
     const downloadUrl = session.downloadUrl || '';
+    const uploadUrl = session.uploadUrl || '';
     const canSubmit = hasSubmissionCapability(session);
     const webSocketUrl = getWebSocketUrl(session) || '';
+    const accounts = getMailAccounts(session);
+    const contactsAccountId = getContactsAccountId(session) || '';
+    const calendarsAccountId = getCalendarsAccountId(session) || '';
+    const sieveAccountId = getSieveAccountId(session);
+    const filesAccountId = getFilesAccountId(session);
+    const vacationAccountId = getVacationAccountId(session);
+    const quotaAccountId = getQuotaAccountId(session);
+    const vapidKey = getVapidKey(session);
+    const hasContactsImport =
+      !!contactsAccountId && hasCapability(session, JMAP_CONTACTS_PARSE);
+    const hasCalendarsImport =
+      !!calendarsAccountId && hasCapability(session, JMAP_CALENDARS_PARSE);
+    const hasAvailability =
+      !!calendarsAccountId && hasCapability(session, JMAP_AVAILABILITY);
 
     const mailboxesRequest = await fetchMailboxes(apiUrl, accountId, {
       Authorization: authorizationHeader,
@@ -172,16 +200,34 @@ function Layout(): JSX.Element {
       return;
     }
 
+    const identitiesRequest = await fetchIdentities(apiUrl, accountId, {
+      Authorization: authorizationHeader,
+    });
+    const identities = identitiesRequest.success ? identitiesRequest.data : [];
+
     dispatch(
       login({
         identifier,
         authorizationHeader,
         apiUrl,
         downloadUrl,
+        uploadUrl,
         accountId,
         endpoint,
         canSubmit,
         webSocketUrl,
+        accounts,
+        contactsAccountId,
+        calendarsAccountId,
+        sieveAccountId,
+        filesAccountId,
+        vacationAccountId,
+        quotaAccountId,
+        vapidKey,
+        hasContactsImport,
+        hasCalendarsImport,
+        hasAvailability,
+        identities,
       }),
     );
     dispatch(setMailboxes(mailboxesRequest.data));

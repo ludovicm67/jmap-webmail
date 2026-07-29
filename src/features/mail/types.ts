@@ -25,6 +25,8 @@ export type EmailBodyPart = {
   type?: string;
   charset?: string;
   name?: string | null;
+  disposition?: string | null;
+  cid?: string | null;
 };
 
 export type EmailBodyValue = {
@@ -52,6 +54,7 @@ export type Mail = {
   keywords: Record<string, boolean>;
   textBody?: EmailBodyPart[];
   htmlBody?: EmailBodyPart[];
+  attachments?: EmailBodyPart[];
   bodyValues?: Record<string, EmailBodyValue>;
 };
 

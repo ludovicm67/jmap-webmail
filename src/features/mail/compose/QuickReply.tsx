@@ -1,7 +1,14 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Send } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { Mail } from '../types';
 import { useComposer } from './useComposer';
@@ -14,10 +21,15 @@ type QuickReplyProps = {
 
 // A compact reply box pinned to the bottom of the reading pane.
 function QuickReply({ mail, quoteText }: QuickReplyProps) {
-  const { send } = useComposer();
+  const { identities, activeIdentityId, send } = useComposer();
+  const [identityId, setIdentityId] = useState(activeIdentityId);
   const [text, setText] = useState('');
   const [sending, setSending] = useState(false);
   const [error, setError] = useState('');
+
+  useEffect(() => {
+    setIdentityId(activeIdentityId);
+  }, [activeIdentityId]);
 
   const onSend = async () => {
     if (sending || text.trim() === '') {
@@ -31,6 +43,7 @@ function QuickReply({ mail, quoteText }: QuickReplyProps) {
       to: reply.to || '',
       subject: reply.subject || '',
       textBody: `${text}${reply.body || ''}`,
+      identityId,
       inReplyTo: reply.inReplyTo,
       references: reply.references,
     });
@@ -56,7 +69,25 @@ function QuickReply({ mail, quoteText }: QuickReplyProps) {
         value={text}
         onChange={(e) => setText(e.target.value)}
       />
-      <div className="flex justify-end">
+      <div className="flex items-center justify-between gap-2">
+        {identities.length > 1 ? (
+          <Select value={identityId} onValueChange={setIdentityId}>
+            <SelectTrigger size="sm" className="max-w-[60%]">
+              <SelectValue placeholder="From…" />
+            </SelectTrigger>
+            <SelectContent>
+              {identities.map((identity) => (
+                <SelectItem key={identity.id} value={identity.id}>
+                  {identity.name
+                    ? `${identity.name} <${identity.email}>`
+                    : identity.email}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        ) : (
+          <span />
+        )}
         <Button
           size="sm"
           onClick={onSend}

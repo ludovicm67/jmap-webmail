@@ -59,7 +59,11 @@ function BulkActions({ ids, currentMailbox, onDone }: BulkActionsProps) {
   const otherMailboxes = mailboxes.filter((m) => m.id !== currentMailbox.id);
 
   const reconcileMailboxes = async () => {
-    const request = await fetchMailboxes(login.apiUrl, login.accountId, auth);
+    const request = await fetchMailboxes(
+      login.apiUrl,
+      login.activeAccountId,
+      auth,
+    );
     if (request.success) {
       dispatch(setMailboxes(request.data));
     }
@@ -73,7 +77,7 @@ function BulkActions({ ids, currentMailbox, onDone }: BulkActionsProps) {
     dispatch(setMailsSeen({ ids, seen }));
     await setEmailsKeyword(
       login.apiUrl,
-      login.accountId,
+      login.activeAccountId,
       ids,
       '$seen',
       seen,
@@ -90,7 +94,7 @@ function BulkActions({ ids, currentMailbox, onDone }: BulkActionsProps) {
     setBusy(true);
     const request = await moveEmails(
       login.apiUrl,
-      login.accountId,
+      login.activeAccountId,
       ids,
       targetMailboxId,
       auth,
@@ -120,7 +124,7 @@ function BulkActions({ ids, currentMailbox, onDone }: BulkActionsProps) {
     setBusy(true);
     const request = await destroyEmails(
       login.apiUrl,
-      login.accountId,
+      login.activeAccountId,
       ids,
       auth,
     );
