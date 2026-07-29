@@ -28,7 +28,8 @@
     "preview": "vite preview",
     "lint": "eslint .",
     "test": "vitest run",
-    "test:integration": "STALWART_URL=http://localhost:8080/.well-known/jmap vitest run"
+    "test:integration": "STALWART_URL=http://localhost:8080/.well-known/jmap vitest run",
+    "test:e2e": "playwright test"
   },
   "browserslist": {
     "production": [
@@ -44,6 +45,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.39.4",
+    "@playwright/test": "^1.62.0",
     "@types/node": "^26.1.0",
     "@vitejs/plugin-react": "^6.0.3",
     "eslint": "^9.39.4",

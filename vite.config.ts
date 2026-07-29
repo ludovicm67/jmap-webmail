@@ -27,6 +27,24 @@ const jmapProxy: ProxyOptions = {
       proxyReq.removeHeader('accept-encoding'),
     );
 
+    // Browsers can't set an Authorization header on a WebSocket, so the client
+    // passes it as a `jmapauth.<base64url>` subprotocol; turn it back into the
+    // header Stalwart expects and forward only the real `jmap` subprotocol.
+    proxy.on('proxyReqWs', (proxyReq, req) => {
+      const protocols = String(req.headers['sec-websocket-protocol'] ?? '')
+        .split(',')
+        .map((p) => p.trim());
+      const authProto = protocols.find((p) => p.startsWith('jmapauth.'));
+      if (authProto) {
+        const header = Buffer.from(
+          authProto.slice('jmapauth.'.length),
+          'base64url',
+        ).toString('utf8');
+        proxyReq.setHeader('Authorization', header);
+        proxyReq.setHeader('Sec-WebSocket-Protocol', 'jmap');
+      }
+    });
+
     proxy.on(
       'proxyRes',
       (

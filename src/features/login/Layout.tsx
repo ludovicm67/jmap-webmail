@@ -28,6 +28,7 @@ import {
   fetchSession,
   getBasicToken,
   getMailAccountId,
+  getWebSocketUrl,
   hasSubmissionCapability,
   probeAuthMethods,
 } from '../../lib/jmap';
@@ -151,6 +152,7 @@ function Layout(): JSX.Element {
     const apiUrl = session.apiUrl;
     const downloadUrl = session.downloadUrl || '';
     const canSubmit = hasSubmissionCapability(session);
+    const webSocketUrl = getWebSocketUrl(session) || '';
 
     const mailboxesRequest = await fetchMailboxes(apiUrl, accountId, {
       Authorization: authorizationHeader,
@@ -179,6 +181,7 @@ function Layout(): JSX.Element {
         accountId,
         endpoint,
         canSubmit,
+        webSocketUrl,
       }),
     );
     dispatch(setMailboxes(mailboxesRequest.data));

@@ -10,6 +10,7 @@ interface LoginState {
   accountId: string;
   endpoint: string;
   canSubmit: boolean;
+  webSocketUrl: string;
 }
 
 type LoginPayload = {
@@ -20,6 +21,7 @@ type LoginPayload = {
   accountId: string;
   endpoint: string;
   canSubmit: boolean;
+  webSocketUrl: string;
 };
 
 const initialState: LoginState = {
@@ -31,6 +33,7 @@ const initialState: LoginState = {
   accountId: '',
   endpoint: '',
   canSubmit: false,
+  webSocketUrl: '',
 };
 
 export const loginSlice = createSlice({
@@ -46,6 +49,7 @@ export const loginSlice = createSlice({
       state.accountId = action.payload.accountId;
       state.endpoint = action.payload.endpoint;
       state.canSubmit = action.payload.canSubmit;
+      state.webSocketUrl = action.payload.webSocketUrl;
     },
     logout: (state) => {
       state.authenticated = false;
@@ -56,6 +60,7 @@ export const loginSlice = createSlice({
       state.accountId = '';
       state.endpoint = '';
       state.canSubmit = false;
+      state.webSocketUrl = '';
     },
   },
 });
@@ -71,14 +76,8 @@ export const selectIdentifier = (state: RootState): string =>
 export const selectCanSubmit = (state: RootState): boolean =>
   state.login.canSubmit;
 
-export const getLoginPayload = (state: RootState): LoginPayload => ({
-  authorizationHeader: state.login.authorizationHeader,
-  identifier: state.login.identifier,
-  apiUrl: state.login.apiUrl,
-  downloadUrl: state.login.downloadUrl,
-  accountId: state.login.accountId,
-  endpoint: state.login.endpoint,
-  canSubmit: state.login.canSubmit,
-});
+// Return the slice directly (stable reference) rather than building a new
+// object each call, which would cause needless re-renders.
+export const getLoginPayload = (state: RootState): LoginState => state.login;
 
 export default loginSlice.reducer;

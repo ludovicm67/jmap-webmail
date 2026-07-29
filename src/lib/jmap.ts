@@ -5,6 +5,7 @@ import { randomString } from './random';
 export const JMAP_CORE = 'urn:ietf:params:jmap:core';
 export const JMAP_MAIL = 'urn:ietf:params:jmap:mail';
 export const JMAP_SUBMISSION = 'urn:ietf:params:jmap:submission';
+export const JMAP_WEBSOCKET = 'urn:ietf:params:jmap:websocket';
 
 export type JmapSession = {
   apiUrl: string;
@@ -13,6 +14,7 @@ export type JmapSession = {
   eventSourceUrl?: string;
   username?: string;
   state?: string;
+  capabilities?: Record<string, unknown>;
   accounts: Record<
     string,
     {
@@ -148,6 +150,16 @@ export const fetchSession = async (
 /** Resolve the account id to use for the mail capability. */
 export const getMailAccountId = (session: JmapSession): string | undefined => {
   return session.primaryAccounts?.[JMAP_MAIL];
+};
+
+/**
+ * The JMAP-over-WebSocket URL if the server advertises it with push support,
+ * used to receive StateChange notifications. Returns undefined otherwise.
+ */
+export const getWebSocketUrl = (session: JmapSession): string | undefined => {
+  const ws = session.capabilities?.[JMAP_WEBSOCKET] as
+    { url?: string; supportsPush?: boolean } | undefined;
+  return ws?.supportsPush && ws.url ? ws.url : undefined;
 };
 
 /**

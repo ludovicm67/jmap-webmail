@@ -16,6 +16,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { ModeToggle } from '@/components/mode-toggle';
+import { useJmapPush } from './features/mail/push/useJmapPush';
 import {
   isAuthenticated,
   logout,
@@ -54,6 +55,8 @@ function AccountMenu(): React.JSX.Element {
 
 function App(): React.JSX.Element {
   const authenticated = useSelector(isAuthenticated);
+  // Subscribe to JMAP push (no-op until authenticated / if unsupported).
+  useJmapPush();
 
   return (
     <div className="flex h-full flex-col overflow-hidden">

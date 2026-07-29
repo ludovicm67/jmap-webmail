@@ -31,10 +31,11 @@ Then sign in:
 The Vite dev server proxies the JMAP endpoints to Stalwart (same-origin, so no CORS
 issues) and the setup script also enables permissive CORS on the server.
 
-Run the JMAP client integration tests against the same server with:
+Run the tests against the same server with:
 
 ```sh
-npm run test:integration
+npm run test:integration   # JMAP client (vitest, Node)
+npm run test:e2e           # end-to-end in a real browser (Playwright)
 ```
 
 See [dev/stalwart/README.md](dev/stalwart/README.md) for details. The integration

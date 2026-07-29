@@ -50,6 +50,21 @@ They are gated on `STALWART_URL` so a plain `npm test` skips them.
 
 CI runs the whole flow in [`.github/workflows/integration.yaml`](../../.github/workflows/integration.yaml).
 
+## End-to-end tests (Playwright)
+
+[`e2e/`](../../e2e/) drives the real webmail in a browser against this server:
+signing in, and — key for push — that a **newly delivered email appears in the
+list automatically**, the **Inbox unread count** increases, and the list updates
+even while an email is open. Each test captures the WebSocket frames + console +
+network for diagnosis.
+
+```sh
+docker compose up -d && node dev/stalwart-setup.mjs   # server must be running
+npm run test:e2e
+```
+
+They start the dev server automatically and also run in CI.
+
 ## Try it in the browser
 
 ```sh
@@ -68,6 +83,14 @@ The Vite dev server proxies `/.well-known/jmap` and `/jmap` to Stalwart (see
 The proxy also rewrites the absolute URLs Stalwart advertises in its session
 (`apiUrl`, `downloadUrl`, …) to relative paths, since Stalwart builds them from
 its own hostname over https, which the browser can't reach locally.
+
+**Live updates:** the webmail opens a JMAP WebSocket (RFC 8887) for push, so when
+a new mail arrives (e.g. sign in as Alice and email `test@example.org`), the
+message list and unread counts update automatically — no refresh needed. Since a
+browser can't set an `Authorization` header on a WebSocket, the client passes it
+as a `jmapauth.<base64url>` subprotocol that the proxy turns back into the header
+Stalwart expects. Against a JMAP server that isn't behind this proxy, push simply
+stays off (the app still works).
 
 `dev/stalwart-setup.mjs` also enables **permissive CORS** on Stalwart
 (`usePermissiveCors`) for clients that connect to `http://localhost:8080`

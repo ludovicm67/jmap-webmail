@@ -61,5 +61,15 @@ export default tseslint.config(
       globals: { ...globals.node, ...globals.browser },
     },
   },
+  {
+    // E2E tests log to the console for diagnosis and run under Node.
+    files: ['e2e/**', 'playwright.config.ts'],
+    languageOptions: {
+      globals: { ...globals.node },
+    },
+    rules: {
+      'no-console': 'off',
+    },
+  },
   prettierRecommended,
 );
