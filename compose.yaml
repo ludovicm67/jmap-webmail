@@ -1,0 +1,27 @@
+# Local Stalwart JMAP server for developing/testing the webmail against a real
+# JMAP backend.
+#
+#   docker compose up -d
+#   node dev/stalwart-setup.mjs                      # complete setup + create test account
+#   STALWART_URL=http://localhost:8080/.well-known/jmap npm run test:integration
+#
+# The first boot starts in bootstrap mode (pinned admin via STALWART_RECOVERY_ADMIN);
+# dev/stalwart-setup.mjs drives the JMAP Bootstrap object to finish setup (internal
+# store + full-text search) and creates the example.org domain and test account.
+# Config + data persist in the named volumes, so setup only runs once locally.
+services:
+  stalwart:
+    image: stalwartlabs/stalwart:latest
+    container_name: jmap-webmail-stalwart
+    environment:
+      STALWART_RECOVERY_ADMIN: 'admin:changeme'
+    ports:
+      - '8080:8080' # HTTP: JMAP API + admin (plaintext, local dev only)
+    volumes:
+      - stalwart-etc:/etc/stalwart
+      - stalwart-data:/var/lib/stalwart
+    restart: unless-stopped
+
+volumes:
+  stalwart-etc:
+  stalwart-data:

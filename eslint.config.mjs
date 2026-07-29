@@ -54,5 +54,12 @@ export default tseslint.config(
       'react-refresh/only-export-components': 'off',
     },
   },
+  {
+    // Node dev scripts (e.g. dev/stalwart-init.mjs).
+    files: ['**/*.mjs'],
+    languageOptions: {
+      globals: { ...globals.node, ...globals.browser },
+    },
+  },
   prettierRecommended,
 );

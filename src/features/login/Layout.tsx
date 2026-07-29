@@ -28,6 +28,7 @@ import {
   fetchSession,
   getBasicToken,
   getMailAccountId,
+  probeAuthMethods,
 } from '../../lib/jmap';
 import { setList, setMailboxes } from '../mail/mailSlice';
 import { login } from './loginSlice';
@@ -37,6 +38,8 @@ enum LoginStep {
   Endpoint,
   Credentials,
 }
+
+const AUTH_METHOD_KEY = 'jmap-webmail-auth-method';
 
 function Layout(): JSX.Element {
   const dispatch = useDispatch();
@@ -49,37 +52,76 @@ function Layout(): JSX.Element {
   const [password, setPassword] = useState<string>('');
   const [endpoint, setEndpoint] = useState<string>('');
   const [hasCustomEndpoint, setHasCustomEndpoint] = useState<boolean>(false);
-  const method = 'Basic';
+  const [method, setMethodState] = useState<'Basic' | 'Bearer'>(() =>
+    localStorage.getItem(AUTH_METHOD_KEY) === 'Bearer' ? 'Bearer' : 'Basic',
+  );
+  const [bearerAutoDetected, setBearerAutoDetected] = useState<boolean>(false);
+
+  // Remember the chosen auth method so it is preselected next time.
+  const setMethod = (value: 'Basic' | 'Bearer') => {
+    localStorage.setItem(AUTH_METHOD_KEY, value);
+    setMethodState(value);
+  };
+
+  // Probe the endpoint's WWW-Authenticate challenge and preselect the method
+  // when the server clearly advertises a single scheme.
+  const detectAuthMethod = async (url: string) => {
+    const methods = await probeAuthMethods(url);
+    if (!methods.detected) {
+      return;
+    }
+    if (methods.bearer && !methods.basic) {
+      setMethod('Bearer');
+      setBearerAutoDetected(true);
+    } else if (methods.basic && !methods.bearer) {
+      setMethod('Basic');
+      setBearerAutoDetected(false);
+    }
+  };
 
   const discoverEndpoint = async () => {
     if (loading) return;
     setLoading(true);
+    setError('');
 
-    if (!identifier.includes('@')) {
+    try {
+      if (!identifier.includes('@')) {
+        setError(
+          'Your identifier is not an email. Please specify an endpoint manually.',
+        );
+        setStep(LoginStep.Endpoint);
+        return;
+      }
+
+      const domain = identifier.trim().split('@').pop();
+      if (!domain) {
+        setError(
+          'Unable to discover a domain name in your email identifier. Please specify an endpoint manually.',
+        );
+        setStep(LoginStep.Endpoint);
+        return;
+      }
+
+      const discoveredEndpoint = await discoverJmapEndpoint(domain);
+      if (!discoveredEndpoint) {
+        setError(
+          'Could not discover the JMAP endpoint (the server may be unreachable or missing CORS headers). Please specify an endpoint manually.',
+        );
+        setStep(LoginStep.Endpoint);
+        return;
+      }
+
+      setEndpoint(discoveredEndpoint);
+      setStep(LoginStep.Credentials);
+      await detectAuthMethod(discoveredEndpoint);
+    } catch {
       setError(
-        'Your identifier is not an email. Please specify an endpoint manually.',
+        'Could not discover the JMAP endpoint (the server may be unreachable or missing CORS headers). Please specify an endpoint manually.',
       );
       setStep(LoginStep.Endpoint);
+    } finally {
       setLoading(false);
-      return;
     }
-
-    const domain = identifier.trim().split('@').pop();
-    if (!domain) {
-      setError(
-        'Unable to discover a domain name in your email identifier. Please specify an endpoint manually.',
-      );
-      setStep(LoginStep.Endpoint);
-      setLoading(false);
-      return;
-    }
-
-    const discoveredEndpoint = await discoverJmapEndpoint(domain);
-
-    setEndpoint(discoveredEndpoint);
-    setStep(LoginStep.Credentials);
-
-    setLoading(false);
   };
 
   const actionButton = async () => {
@@ -101,13 +143,14 @@ function Layout(): JSX.Element {
       }
       setHasCustomEndpoint(true);
       setStep(LoginStep.Credentials);
+      await detectAuthMethod(endpoint);
     }
 
     if (step === LoginStep.Credentials) {
-      const authorizationHeader = `Basic ${getBasicToken(
-        identifier,
-        password,
-      )}`;
+      const authorizationHeader =
+        method === 'Bearer'
+          ? `Bearer ${password}`
+          : `Basic ${getBasicToken(identifier, password)}`;
 
       const sessionRequest = await fetchSession(endpoint, {
         Authorization: authorizationHeader,
@@ -219,27 +262,42 @@ function Layout(): JSX.Element {
             </div>
           </ConditionalDisplay>
 
-          <ConditionalDisplay cond={more}>
+          <ConditionalDisplay cond={more || step >= LoginStep.Credentials}>
             <div className="flex flex-col gap-2">
               <Label htmlFor="login-form-method">Authentication method</Label>
-              <Select value={method} disabled>
+              <Select
+                value={method}
+                onValueChange={(value) => {
+                  setMethod(value as 'Basic' | 'Bearer');
+                  setBearerAutoDetected(false);
+                }}
+              >
                 <SelectTrigger id="login-form-method" className="w-full">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value={method}>Password</SelectItem>
+                  <SelectItem value="Basic">Password</SelectItem>
+                  <SelectItem value="Bearer">Bearer token</SelectItem>
                 </SelectContent>
               </Select>
+              {bearerAutoDetected && (
+                <p className="text-muted-foreground text-sm">
+                  This server advertises Bearer token authentication, so it was
+                  selected automatically.
+                </p>
+              )}
             </div>
           </ConditionalDisplay>
 
           <ConditionalDisplay cond={more || step >= LoginStep.Credentials}>
             <div className="flex flex-col gap-2">
-              <Label htmlFor="login-form-password">Password</Label>
+              <Label htmlFor="login-form-password">
+                {method === 'Bearer' ? 'Bearer token' : 'Password'}
+              </Label>
               <Input
                 id="login-form-password"
                 type="password"
-                placeholder="********"
+                placeholder={method === 'Bearer' ? 'Access token' : '********'}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
               />

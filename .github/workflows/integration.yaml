@@ -1,0 +1,45 @@
+name: Integration tests (Stalwart)
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  integration:
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        shell: bash
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 'lts/*'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Start Stalwart
+        run: docker compose up -d
+
+      - name: Set up Stalwart (bootstrap + test account + seed)
+        run: node dev/stalwart-setup.mjs
+
+      - name: Run integration tests
+        run: npm run test:integration
+
+      - name: Stalwart logs (on failure)
+        if: failure()
+        run: docker compose logs stalwart
+
+      - name: Tear down
+        if: always()
+        run: docker compose down -v

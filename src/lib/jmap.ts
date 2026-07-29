@@ -22,8 +22,47 @@ export type JmapSession = {
 
 export const discoverJmapEndpoint = async (domain: string): Promise<string> => {
   const wellKnownURL = `https://${domain}/.well-known/jmap`;
-  const response = await fetch(wellKnownURL);
-  return response.url;
+  try {
+    const response = await fetch(wellKnownURL);
+    return response.url;
+  } catch {
+    // Network / CORS failure — let the caller fall back to manual entry.
+    return '';
+  }
+};
+
+export type AuthMethods = {
+  basic: boolean;
+  bearer: boolean;
+  // Whether the `WWW-Authenticate` header was actually readable. Cross-origin
+  // servers may not expose it (CORS), in which case detection is inconclusive.
+  detected: boolean;
+};
+
+/**
+ * Probe the session endpoint without credentials and read the
+ * `WWW-Authenticate` challenge to learn which auth schemes it accepts
+ * (e.g. `Basic`, `Bearer`). If the header isn't exposed, `detected` is false
+ * and the caller should let the user pick the method manually.
+ */
+export const probeAuthMethods = async (
+  sessionUrl: string,
+): Promise<AuthMethods> => {
+  try {
+    const response = await fetch(sessionUrl, { method: 'GET' });
+    const header = response.headers.get('WWW-Authenticate') || '';
+    if (!header) {
+      return { basic: false, bearer: false, detected: false };
+    }
+    const lower = header.toLowerCase();
+    return {
+      basic: lower.includes('basic'),
+      bearer: lower.includes('bearer'),
+      detected: true,
+    };
+  } catch {
+    return { basic: false, bearer: false, detected: false };
+  }
 };
 
 type JMAPResponse<T> =

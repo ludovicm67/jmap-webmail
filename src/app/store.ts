@@ -16,13 +16,11 @@ export type RootState = ReturnType<typeof rootReducer>;
 
 const STORAGE_KEY = 'jmap-webmail-state';
 
-// Rehydrate the store from sessionStorage so a page refresh keeps the user
-// signed in (and their mailboxes/list around) instead of bouncing to login.
-// sessionStorage (rather than localStorage) means the credentials are cleared
-// when the tab is closed, limiting how long the Basic-auth header lingers.
+// Rehydrate the store from localStorage so the user stays signed in across
+// refreshes and browser restarts (the credentials persist until logout).
 const loadState = (): RootState | undefined => {
   try {
-    const raw = sessionStorage.getItem(STORAGE_KEY);
+    const raw = localStorage.getItem(STORAGE_KEY);
     return raw ? (JSON.parse(raw) as RootState) : undefined;
   } catch {
     return undefined;
@@ -39,7 +37,7 @@ export const store = configureStore({
 store.subscribe(() => {
   try {
     const { login, mail } = store.getState();
-    sessionStorage.setItem(STORAGE_KEY, JSON.stringify({ login, mail }));
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ login, mail }));
   } catch {
     // Ignore quota / serialization errors — persistence is best-effort.
   }
