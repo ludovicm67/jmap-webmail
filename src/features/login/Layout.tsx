@@ -28,6 +28,7 @@ import {
   fetchSession,
   getBasicToken,
   getMailAccountId,
+  hasSubmissionCapability,
   probeAuthMethods,
 } from '../../lib/jmap';
 import { setList, setMailboxes } from '../mail/mailSlice';
@@ -124,15 +125,88 @@ function Layout(): JSX.Element {
     }
   };
 
+  const signIn = async () => {
+    const authorizationHeader =
+      method === 'Bearer'
+        ? `Bearer ${password}`
+        : `Basic ${getBasicToken(identifier, password)}`;
+
+    const sessionRequest = await fetchSession(endpoint, {
+      Authorization: authorizationHeader,
+    });
+    if (!sessionRequest.success) {
+      setError(sessionRequest.message);
+      setLoading(false);
+      return;
+    }
+
+    const session = sessionRequest.data;
+    const accountId = getMailAccountId(session);
+    if (!accountId) {
+      setError('No mail account is available for these credentials.');
+      setLoading(false);
+      return;
+    }
+
+    const apiUrl = session.apiUrl;
+    const downloadUrl = session.downloadUrl || '';
+    const canSubmit = hasSubmissionCapability(session);
+
+    const mailboxesRequest = await fetchMailboxes(apiUrl, accountId, {
+      Authorization: authorizationHeader,
+    });
+    if (!mailboxesRequest.success) {
+      setError(mailboxesRequest.message);
+      setLoading(false);
+      return;
+    }
+
+    const mailsRequest = await fetchMails(apiUrl, accountId, {
+      Authorization: authorizationHeader,
+    });
+    if (!mailsRequest.success) {
+      setError(mailsRequest.message);
+      setLoading(false);
+      return;
+    }
+
+    dispatch(
+      login({
+        identifier,
+        authorizationHeader,
+        apiUrl,
+        downloadUrl,
+        accountId,
+        endpoint,
+        canSubmit,
+      }),
+    );
+    dispatch(setMailboxes(mailboxesRequest.data));
+    dispatch(setList(mailsRequest.data));
+    // On success the app re-renders to the mail view.
+  };
+
   const actionButton = async () => {
     if (loading) return;
     setLoading(true);
     setError('');
 
+    // "More options" reveals every field at once, so sign in directly with the
+    // manually entered endpoint — no discovery, no step-by-step wizard.
+    if (more) {
+      if (endpoint === '') {
+        setError('Please provide an endpoint.');
+        setLoading(false);
+        return;
+      }
+      await signIn();
+      return;
+    }
+
+    // Guided flow: one action per click.
     if (step === LoginStep.Identifier) {
-      setLoading(false);
       await discoverEndpoint();
-      setLoading(true);
+      return;
     }
 
     if (step === LoginStep.Endpoint) {
@@ -144,65 +218,12 @@ function Layout(): JSX.Element {
       setHasCustomEndpoint(true);
       setStep(LoginStep.Credentials);
       await detectAuthMethod(endpoint);
+      setLoading(false);
+      return;
     }
 
     if (step === LoginStep.Credentials) {
-      const authorizationHeader =
-        method === 'Bearer'
-          ? `Bearer ${password}`
-          : `Basic ${getBasicToken(identifier, password)}`;
-
-      const sessionRequest = await fetchSession(endpoint, {
-        Authorization: authorizationHeader,
-      });
-      if (!sessionRequest.success) {
-        setError(sessionRequest.message);
-        setLoading(false);
-        return;
-      }
-
-      const session = sessionRequest.data;
-      const accountId = getMailAccountId(session);
-      if (!accountId) {
-        setError('No mail account is available for these credentials.');
-        setLoading(false);
-        return;
-      }
-
-      const apiUrl = session.apiUrl;
-      const downloadUrl = session.downloadUrl || '';
-
-      const mailboxesRequest = await fetchMailboxes(apiUrl, accountId, {
-        Authorization: authorizationHeader,
-      });
-      if (!mailboxesRequest.success) {
-        setError(mailboxesRequest.message);
-        setLoading(false);
-        return;
-      }
-
-      const mailsRequest = await fetchMails(apiUrl, accountId, {
-        Authorization: authorizationHeader,
-      });
-      if (!mailsRequest.success) {
-        setError(mailsRequest.message);
-        setLoading(false);
-        return;
-      }
-
-      dispatch(
-        login({
-          identifier,
-          authorizationHeader,
-          apiUrl,
-          downloadUrl,
-          accountId,
-          endpoint,
-        }),
-      );
-      dispatch(setMailboxes(mailboxesRequest.data));
-      dispatch(setList(mailsRequest.data));
-
+      await signIn();
       return;
     }
 

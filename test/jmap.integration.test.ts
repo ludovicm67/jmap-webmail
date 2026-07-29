@@ -8,6 +8,7 @@ import {
   fetchMails,
   fetchSession,
   getMailAccountId,
+  hasSubmissionCapability,
   moveEmails,
   setEmailKeyword,
   setEmailsKeyword,
@@ -192,5 +193,12 @@ suite('JMAP client against a live Stalwart server', () => {
   it('fetchIdentities succeeds (list may be empty for the admin account)', async () => {
     const res = await fetchIdentities(apiUrl, accountId, headers);
     expect(res.success).toBe(true);
+  });
+
+  it('reports the submission capability for a sending account', async () => {
+    const session = await fetchSession(SESSION_URL, headers);
+    expect(session.success).toBe(true);
+    if (!session.success) return;
+    expect(hasSubmissionCapability(session.data)).toBe(true);
   });
 });

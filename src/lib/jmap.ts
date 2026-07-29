@@ -15,7 +15,12 @@ export type JmapSession = {
   state?: string;
   accounts: Record<
     string,
-    { name: string; isPersonal: boolean; isReadOnly: boolean }
+    {
+      name: string;
+      isPersonal: boolean;
+      isReadOnly: boolean;
+      accountCapabilities?: Record<string, unknown>;
+    }
   >;
   primaryAccounts: Record<string, string>;
 };
@@ -143,6 +148,20 @@ export const fetchSession = async (
 /** Resolve the account id to use for the mail capability. */
 export const getMailAccountId = (session: JmapSession): string | undefined => {
   return session.primaryAccounts?.[JMAP_MAIL];
+};
+
+/**
+ * Whether the account can send mail, i.e. it has the submission capability.
+ * Used to hide compose/reply for accounts that can only read.
+ */
+export const hasSubmissionCapability = (session: JmapSession): boolean => {
+  const accountId = getMailAccountId(session);
+  const accountCapabilities =
+    accountId && session.accounts?.[accountId]?.accountCapabilities;
+  if (accountCapabilities) {
+    return JMAP_SUBMISSION in accountCapabilities;
+  }
+  return Boolean(session.primaryAccounts?.[JMAP_SUBMISSION]);
 };
 
 const postJmap = async (

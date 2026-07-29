@@ -6,12 +6,14 @@ import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import ComposeDialog from '../compose/ComposeDialog';
+import { selectCanSubmit } from '../../login/loginSlice';
 import { selectMailboxes } from '../mailSlice';
 import { getMailboxIcon, getMailboxIconColor, getMailboxName } from '../utils';
 import Empty from './Empty';
 
 function List(): JSX.Element {
   const mailboxes = useSelector(selectMailboxes);
+  const canSubmit = useSelector(selectCanSubmit);
 
   const routeParams = useParams<{ mailboxId?: string; mailId?: string }>();
   let mailboxId = routeParams.mailboxId || 'inbox';
@@ -25,16 +27,18 @@ function List(): JSX.Element {
 
   return (
     <div className="flex flex-1 flex-col overflow-auto p-2">
-      <div className="p-1">
-        <ComposeDialog
-          trigger={
-            <Button className="w-full">
-              <PenSquare className="h-4 w-4" />
-              Compose
-            </Button>
-          }
-        />
-      </div>
+      {canSubmit && (
+        <div className="p-1">
+          <ComposeDialog
+            trigger={
+              <Button className="w-full">
+                <PenSquare className="h-4 w-4" />
+                Compose
+              </Button>
+            }
+          />
+        </div>
+      )}
       <div className="text-muted-foreground px-2 py-1 text-xs font-medium tracking-wide uppercase">
         Mailboxes
       </div>

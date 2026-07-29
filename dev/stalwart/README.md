@@ -12,23 +12,33 @@ npm run test:integration             # run the JMAP client integration tests
 docker compose down -v               # stop and wipe the data volumes
 ```
 
-`dev/stalwart-setup.mjs` is idempotent and does three things:
+`dev/stalwart-setup.mjs` is idempotent and does four things:
 
 1. **Completes Stalwart's bootstrap** via the `x:Bootstrap` JMAP object (internal
    RocksDB store + `Default` full-text search — this is what makes `Email/query`
    work), then restarts the container into normal mode.
-2. **Creates** the `example.org` domain's `test@example.org` account.
-3. **Seeds** a few sample messages into its inbox.
+2. **Creates** the `example.org` demo accounts (below).
+3. **Seeds** a few sample messages into `test@example.org`'s inbox.
+4. **Enables permissive CORS** (see the browser section).
 
 ## Fixed credentials
+
+All accounts live on the `example.org` domain, so they can **email each other
+locally** (Stalwart delivers internally — no external SMTP needed):
 
 | Account | Login | Password |
 | --- | --- | --- |
 | Test user | `test@example.org` | `jmap-webmail-test-passphrase-2026` |
+| Alice | `alice@example.org` | `jmap-webmail-alice-passphrase-2026` |
+| Bob | `bob@example.org` | `jmap-webmail-bob-passphrase-2026` |
 | Admin (recovery) | `admin` | `changeme` (pinned via `STALWART_RECOVERY_ADMIN`) |
 
-`admin@example.org` is also created during setup with a random password (printed
-by the bootstrap step). The recovery admin (`admin` / `changeme`) always works.
+Each account gets an auto-created sending identity, so composing/replying from the
+webmail works between them. `admin@example.org` is also created during setup with a
+random password; the recovery admin (`admin` / `changeme`) always works.
+
+To try sending: sign in as `test@example.org`, **Compose** a message to
+`alice@example.org`, then sign in as Alice to see it arrive.
 
 ## Integration tests
 
@@ -40,11 +50,26 @@ They are gated on `STALWART_URL` so a plain `npm test` skips them.
 
 CI runs the whole flow in [`.github/workflows/integration.yaml`](../../.github/workflows/integration.yaml).
 
-## Notes
+## Try it in the browser
 
-- Stalwart advertises its URLs with the internal container hostname over TLS
-  (`https://<id>/jmap/`), which isn't reachable from the host, so the tests and
-  setup script rebase the path onto `http://localhost:8080`.
-- Using the **webmail UI** against this server from `http://localhost:3000`
-  requires Stalwart to send permissive CORS headers (a browser cross-origin
-  concern); the Node integration tests are not subject to CORS.
+```sh
+docker compose up -d && node dev/stalwart-setup.mjs   # if not already running
+npm run dev                                           # webmail at http://localhost:3000
+```
+
+Then sign in:
+
+1. Enter the identifier `test@example.org` and tick **More options**.
+2. Set **Endpoint** to `http://localhost:3000/.well-known/jmap`.
+3. Password: `jmap-webmail-test-passphrase-2026`, then **Sign In**.
+
+The Vite dev server proxies `/.well-known/jmap` and `/jmap` to Stalwart (see
+[vite.config.ts](../../vite.config.ts)), so the browser talks to it same-origin.
+The proxy also rewrites the absolute URLs Stalwart advertises in its session
+(`apiUrl`, `downloadUrl`, …) to relative paths, since Stalwart builds them from
+its own hostname over https, which the browser can't reach locally.
+
+`dev/stalwart-setup.mjs` also enables **permissive CORS** on Stalwart
+(`usePermissiveCors`) for clients that connect to `http://localhost:8080`
+directly. The Node integration tests hit port 8080 directly and rebase the
+advertised `apiUrl` onto the local origin themselves.

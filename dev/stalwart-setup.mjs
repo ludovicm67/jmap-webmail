@@ -21,6 +21,19 @@ const DOMAIN = 'example.org';
 export const TEST_EMAIL = 'test@example.org';
 export const TEST_PASS = 'jmap-webmail-test-passphrase-2026';
 
+// Demo accounts (all on example.org, so they can email each other locally).
+// `test` is the one the integration tests use.
+const USERS = [
+  { name: 'test', pass: TEST_PASS, description: 'Primary demo / test user' },
+  {
+    name: 'alice',
+    pass: 'jmap-webmail-alice-passphrase-2026',
+    description: 'Alice',
+  },
+  { name: 'bob', pass: 'jmap-webmail-bob-passphrase-2026', description: 'Bob' },
+];
+const emailOf = (user) => `${user.name}@${DOMAIN}`;
+
 const CORE = 'urn:ietf:params:jmap:core';
 const MAIL = 'urn:ietf:params:jmap:mail';
 const STALWART = 'urn:stalwart:jmap';
@@ -92,45 +105,84 @@ const completeBootstrap = async () => {
   await waitHealthy('post-restart');
 };
 
-const createTestUser = async () => {
-  const accounts = await jmap(ADMIN, [['x:Account/get', {}, '0']]);
-  const list = accounts.methodResponses?.[0]?.[1]?.list ?? [];
-  if (list.some((a) => a.emailAddress === TEST_EMAIL)) {
-    console.log(`✓ ${TEST_EMAIL} already exists`);
-    return;
-  }
-  const domainId = list.find((a) =>
-    a.emailAddress?.endsWith(`@${DOMAIN}`),
-  )?.domainId;
+const createUsers = async () => {
+  const domains = await jmap(ADMIN, [['x:Domain/get', {}, '0']]);
+  const domainId = (domains.methodResponses?.[0]?.[1]?.list ?? []).find(
+    (d) => d.name === DOMAIN,
+  )?.id;
   if (!domainId) {
     throw new Error(`Could not resolve the ${DOMAIN} domain id`);
   }
 
-  const create = await jmap(ADMIN, [
-    [
-      'x:Account/set',
-      {
-        create: {
-          u: {
-            '@type': 'User',
-            name: 'test',
-            domainId,
-            credentials: { 0: { '@type': 'Password', secret: TEST_PASS } },
-            roles: { '@type': 'User' },
-            description: 'Integration test user',
+  const accounts = await jmap(ADMIN, [['x:Account/get', {}, '0']]);
+  const existing = new Set(
+    (accounts.methodResponses?.[0]?.[1]?.list ?? []).map((a) => a.emailAddress),
+  );
+
+  for (const user of USERS) {
+    const email = emailOf(user);
+    if (existing.has(email)) {
+      console.log(`✓ ${email} already exists`);
+      continue;
+    }
+    const create = await jmap(ADMIN, [
+      [
+        'x:Account/set',
+        {
+          create: {
+            u: {
+              '@type': 'User',
+              name: user.name,
+              domainId,
+              credentials: { 0: { '@type': 'Password', secret: user.pass } },
+              roles: { '@type': 'User' },
+              description: user.description,
+            },
           },
+        },
+        '0',
+      ],
+    ]);
+    if (!create.methodResponses?.[0]?.[1]?.created?.u) {
+      throw new Error(
+        `Create ${email} failed: ` +
+          JSON.stringify(create.methodResponses?.[0]?.[1]?.notCreated),
+      );
+    }
+    console.log(`✓ Created ${email}`);
+  }
+};
+
+// Enable permissive CORS (and trust X-Forwarded-* headers) so the webmail can
+// reach the server in a local browser setup. Requires a restart to take effect.
+const configureHttp = async () => {
+  const get = await jmap(ADMIN, [['x:Http/get', { ids: ['singleton'] }, '0']]);
+  const current = get.methodResponses?.[0]?.[1]?.list?.[0];
+  if (current?.usePermissiveCors === true) {
+    console.log('✓ Permissive CORS already enabled');
+    return;
+  }
+
+  const set = await jmap(ADMIN, [
+    [
+      'x:Http/set',
+      {
+        update: {
+          singleton: { usePermissiveCors: true, useXForwarded: true },
         },
       },
       '0',
     ],
   ]);
-  if (!create.methodResponses?.[0]?.[1]?.created?.u) {
-    throw new Error(
-      'Create user failed: ' +
-        JSON.stringify(create.methodResponses?.[0]?.[1]?.notCreated),
-    );
+  const updated = set.methodResponses?.[0]?.[1]?.updated ?? {};
+  if (!('singleton' in updated)) {
+    throw new Error('Failed to enable CORS: ' + JSON.stringify(set));
   }
-  console.log(`✓ Created ${TEST_EMAIL}`);
+  console.log('✓ Enabled permissive CORS');
+
+  console.log('  Restarting Stalwart to apply HTTP settings…');
+  execSync('docker compose restart stalwart', { stdio: 'inherit' });
+  await waitHealthy('post-cors-restart');
 };
 
 const seedMail = async () => {
@@ -208,16 +260,24 @@ const seedMail = async () => {
 const main = async () => {
   await waitHealthy('startup');
   await completeBootstrap();
-  await createTestUser();
+  await createUsers();
   await seedMail();
+  await configureHttp();
 
   console.log('');
   console.log('Stalwart is ready:');
   console.log(`  JMAP endpoint : ${BASE}/.well-known/jmap`);
-  console.log(`  Test account  : ${TEST_EMAIL} / ${TEST_PASS}`);
-  console.log(`  Admin (recovery): admin / changeme`);
+  console.log('  Accounts (all can email each other locally):');
+  for (const user of USERS) {
+    console.log(`    ${emailOf(user).padEnd(18)} / ${user.pass}`);
+  }
+  console.log('  Admin (recovery): admin / changeme');
   console.log('');
   console.log('Run the integration tests with:  npm run test:integration');
+  console.log(
+    'Or use the webmail UI (npm run dev) — sign in via "More options" with',
+  );
+  console.log('  endpoint http://localhost:3000/.well-known/jmap');
 };
 
 main().catch((err) => {

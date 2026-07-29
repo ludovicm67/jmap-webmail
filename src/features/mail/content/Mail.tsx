@@ -7,7 +7,7 @@ import SanitizedHtml from '../../../components/SanitizedHtml';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { fetchMail, setEmailKeyword } from '../../../lib/jmap';
-import { getLoginPayload } from '../../login/loginSlice';
+import { getLoginPayload, selectCanSubmit } from '../../login/loginSlice';
 import { selectMails, setMailSeen } from '../mailSlice';
 import { Mail as MailType } from '../types';
 import ComposeDialog from '../compose/ComposeDialog';
@@ -51,6 +51,7 @@ function Mail(props: MailProps): JSX.Element {
   const dispatch = useDispatch();
   const { authorizationHeader, apiUrl, accountId } =
     useSelector(getLoginPayload);
+  const canSubmit = useSelector(selectCanSubmit);
   const mailFromList = useSelector(selectMails).find((m) => m.id === mailId);
   const autoMarked = useRef<string | null>(null);
 
@@ -149,16 +150,18 @@ function Mail(props: MailProps): JSX.Element {
           </div>
         </div>
         <div className="mt-0.5 flex shrink-0 items-center gap-2">
-          <ComposeDialog
-            title="Reply"
-            initial={replyInitial}
-            trigger={
-              <Button variant="outline" size="sm">
-                <Reply className="h-4 w-4" />
-                <span className="hidden sm:inline">Reply</span>
-              </Button>
-            }
-          />
+          {canSubmit && (
+            <ComposeDialog
+              title="Reply"
+              initial={replyInitial}
+              trigger={
+                <Button variant="outline" size="sm">
+                  <Reply className="h-4 w-4" />
+                  <span className="hidden sm:inline">Reply</span>
+                </Button>
+              }
+            />
+          )}
           <Button variant="outline" size="sm" onClick={() => setSeen(!seen)}>
             {seen ? (
               <>
@@ -194,7 +197,7 @@ function Mail(props: MailProps): JSX.Element {
           </pre>
         )}
       </div>
-      <QuickReply mail={data} quoteText={quoteText} />
+      {canSubmit && <QuickReply mail={data} quoteText={quoteText} />}
     </div>
   );
 }

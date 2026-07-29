@@ -9,6 +9,7 @@ interface LoginState {
   downloadUrl: string;
   accountId: string;
   endpoint: string;
+  canSubmit: boolean;
 }
 
 type LoginPayload = {
@@ -18,6 +19,7 @@ type LoginPayload = {
   downloadUrl: string;
   accountId: string;
   endpoint: string;
+  canSubmit: boolean;
 };
 
 const initialState: LoginState = {
@@ -28,6 +30,7 @@ const initialState: LoginState = {
   downloadUrl: '',
   accountId: '',
   endpoint: '',
+  canSubmit: false,
 };
 
 export const loginSlice = createSlice({
@@ -42,6 +45,7 @@ export const loginSlice = createSlice({
       state.downloadUrl = action.payload.downloadUrl;
       state.accountId = action.payload.accountId;
       state.endpoint = action.payload.endpoint;
+      state.canSubmit = action.payload.canSubmit;
     },
     logout: (state) => {
       state.authenticated = false;
@@ -51,6 +55,7 @@ export const loginSlice = createSlice({
       state.downloadUrl = '';
       state.accountId = '';
       state.endpoint = '';
+      state.canSubmit = false;
     },
   },
 });
@@ -63,6 +68,8 @@ export const selectAuthorizationHeader = (state: RootState): string =>
   state.login.authorizationHeader;
 export const selectIdentifier = (state: RootState): string =>
   state.login.identifier;
+export const selectCanSubmit = (state: RootState): boolean =>
+  state.login.canSubmit;
 
 export const getLoginPayload = (state: RootState): LoginPayload => ({
   authorizationHeader: state.login.authorizationHeader,
@@ -71,6 +78,7 @@ export const getLoginPayload = (state: RootState): LoginPayload => ({
   downloadUrl: state.login.downloadUrl,
   accountId: state.login.accountId,
   endpoint: state.login.endpoint,
+  canSubmit: state.login.canSubmit,
 });
 
 export default loginSlice.reducer;
