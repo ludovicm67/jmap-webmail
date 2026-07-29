@@ -71,5 +71,13 @@ export default tseslint.config(
       'no-console': 'off',
     },
   },
+  {
+    // The push service worker runs in the ServiceWorkerGlobalScope (`self`,
+    // `clients`, `registration`, …), not the window.
+    files: ['public/**/*.js'],
+    languageOptions: {
+      globals: { ...globals.serviceworker },
+    },
+  },
   prettierRecommended,
 );
